@@ -1,0 +1,46 @@
+use std::net::SocketAddr;
+
+use axum::{routing::{get, post}, Router};
+
+use dotenvy::dotenv;
+use sqlx::postgres::PgPoolOptions;
+
+mod config;
+mod databases;
+mod handlers;
+mod models;
+mod errors;
+
+pub async fn axum() {
+    dotenv().ok();
+
+    let config = config::Config::from_env().unwrap();
+
+    let pool = PgPoolOptions::new()
+        .max_connections(config.pg.as_ref().unwrap().poolmaxsize)
+        .connect(config.database_url().as_ref())
+        .await
+        .expect("Failed to create pool database connection");
+
+    sqlx::migrate!().run(&pool).await.expect("Failed to migrate the database");
+
+    let app = Router::with_state(pool)
+        .route("/", get(handlers::user::hello_world))
+        .route("/register", post(handlers::register::register))
+        .route("/login", post(handlers::login::login))
+        .route("/users", get(handlers::user::user_list))
+        .route("/branch", post(handlers::branch::create))
+        .route("/branches/:id/sync", get(handlers::branch::sync))
+        .route("/branches/:id/specification", post(handlers::specification::create))
+        .route("/branches/:id/products", get(handlers::product::get_all));
+
+    let host = &config.server.as_ref().unwrap().host;
+    let port = &config.server.as_ref().unwrap().port;
+    let addr = format!("{}:{}", host, port).parse::<SocketAddr>().unwrap();
+
+    println!("listening on {}", addr);
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}

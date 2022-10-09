@@ -1,0 +1,2 @@
+-- Add up migration script here
+-- sql remove extension if exists
