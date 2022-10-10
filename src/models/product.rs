@@ -23,25 +23,16 @@ pub struct ProductWithSpecifications {
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 
-    pub specifications: Option<Vec<Specification>>,
+    pub specifications: Option<Vec<SimplifySpecification>>,
 }
 #[derive(Serialize, Deserialize, Debug, Type)]
-pub struct Specification {
-    pub id: Option<Uuid>,
-    pub name: Option<String>,
-    pub amount: Option<i32>,
-    pub unit: Option<String>,
+pub struct SimplifySpecification {
+    pub id: Uuid,
+    pub name: String,
+    pub amount: i32,
+    pub unit: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ProductSpecification {
-    pub id: Uuid,
-    pub product_id: Uuid,
-    pub specification_id: Uuid,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
-    pub deleted_at: Option<NaiveDateTime>,
-}
 
 impl Product {
     pub async fn create(
@@ -83,6 +74,7 @@ impl Product {
     // one to many get all product with many specifications
     pub async fn get_all_with_specifications(
         db: &sqlx::PgPool,
+        branch_id: Uuid,
     ) -> Result<Vec<ProductWithSpecifications>, sqlx::Error> {
         let products = sqlx::query_as!(
             ProductWithSpecifications,
@@ -94,15 +86,16 @@ impl Product {
                 p.reference_id,
                 p.created_at,
                 p.updated_at,
-                coalesce(array_agg((s.id, s.name, s.amount, s.unit)) FILTER (WHERE s.id IS NOT NULL), '{}') AS "specifications: Vec<Specification>"
+                coalesce(array_agg((s.id, s.name, s.amount, s.unit)) FILTER (WHERE s.id IS NOT NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
             FROM
                 products p
                 LEFT JOIN product_specifications ps ON ps.product_id = p.id
                 LEFT JOIN specifications s ON s.id = ps.specification_id
-            WHERE p.deleted_at IS NULL
+            WHERE p.branch_id = $1 AND p.deleted_at IS NULL
             GROUP BY
                 p.id
             "#,
+            branch_id
         )
         .fetch_all(db)
         .await?;

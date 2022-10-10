@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use axum::{routing::{get, post}, Router};
+use axum::{routing::{get, post, put}, Router};
 
 use dotenvy::dotenv;
 use sqlx::postgres::PgPoolOptions;
@@ -32,8 +32,10 @@ pub async fn axum() {
         .route("/branch", post(handlers::branch::create))
         .route("/branches/:id/sync", get(handlers::branch::sync))
         .route("/branches/:id/specification", post(handlers::specification::create))
-        .route("/branches/:id/products", get(handlers::product::get_all));
-
+        .route("/branches/:id/specifications", get(handlers::specification::get_by_branch_id))
+        .route("/branches/:id/products", get(handlers::product::get_all))
+        .route("/branches/:id/set-product-specification", put(handlers::product::setProductSpecification));
+        
     let host = &config.server.as_ref().unwrap().host;
     let port = &config.server.as_ref().unwrap().port;
     let addr = format!("{}:{}", host, port).parse::<SocketAddr>().unwrap();

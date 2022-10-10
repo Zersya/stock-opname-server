@@ -1,6 +1,9 @@
 use crate::errors::Errors;
 use crate::models::product::Product;
+use crate::models::product_specification::ProductSpecification;
+use crate::models::requests::product::RequestCreateProductSpecification;
 use crate::models::responses::DefaultResponse;
+use crate::models::specification::Specification;
 
 use axum::extract::Path;
 use axum::{extract::State, response::Json};
@@ -10,9 +13,9 @@ use uuid::Uuid;
 
 pub async fn get_all(
     State(db): State<PgPool>,
-    Path((_,)): Path<(Uuid,)>,
+    Path((branch_id,)): Path<(Uuid,)>,
 ) -> Result<Json<Value>, Errors> {
-    let result = Product::get_all_with_specifications(&db).await;
+    let result = Product::get_all_with_specifications(&db, branch_id).await;
 
     let products = match result {
         Ok(products) => products,
@@ -24,6 +27,39 @@ pub async fn get_all(
 
     let body = DefaultResponse::new("ok", "get all product successfully".to_string())
         .with_data(json!(products));
+
+    Ok(body.into_response())
+}
+
+pub async fn setProductSpecification(
+    State(db): State<PgPool>,
+    Path((_,)): Path<(Uuid,)>,
+    Json(payload): Json<RequestCreateProductSpecification>,
+) -> Result<Json<Value>, Errors> {
+    let product = Product::get_by_id(&db, payload.product_id).await;
+
+    if product.is_err() {
+        return Err(Errors::new(&[("product_id", "product not found")]));
+    }
+
+    let specification = Specification::get_by_id(&db, payload.specification_id).await;
+
+    if specification.is_err() {
+        return Err(Errors::new(&[(
+            "specification_id",
+            "specification not found",
+        )]));
+    }
+
+    let result = ProductSpecification::create(&db, product.unwrap().id, specification.unwrap().id)
+        .await
+        .unwrap();
+
+    let body = DefaultResponse::new(
+        "ok",
+        "create product specification successfully".to_string(),
+    )
+    .with_data(json!(result));
 
     Ok(body.into_response())
 }

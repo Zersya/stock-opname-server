@@ -37,3 +37,22 @@ pub async fn create(
 
     Ok(body.into_response())
 }
+
+
+pub async fn get_by_branch_id(
+    State(db): State<PgPool>,
+    Path((branch_id,)): Path<(Uuid,)>,
+) -> Result<Json<Value>, Errors> {
+    let branch = Branch::get_by_id(&db, branch_id).await;
+
+    if branch.is_err() {
+        return Err(Errors::new(&[("branch_id", "branch not found")]));
+    }
+
+    let specifications = Specification::get_by_branch_id_with_product(&db, branch_id).await.unwrap();
+
+    let body = DefaultResponse::new("ok", "get all specifications successfully".to_string())
+        .with_data(json!(specifications));
+
+    Ok(body.into_response())
+}
