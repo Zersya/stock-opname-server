@@ -31,7 +31,7 @@ pub async fn get_all(
     Ok(body.into_response())
 }
 
-pub async fn setProductSpecification(
+pub async fn set_product_specification(
     State(db): State<PgPool>,
     Path((_,)): Path<(Uuid,)>,
     Json(payload): Json<RequestCreateProductSpecification>,

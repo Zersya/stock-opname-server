@@ -89,6 +89,23 @@ impl Specification {
         Ok(specification)
     }
 
+    pub async fn delete(db: &sqlx::PgPool, id: Uuid) -> Result<Specification, sqlx::Error> {
+        let specification = sqlx::query_as!(
+            Specification,
+            r#"
+            UPDATE specifications
+            SET deleted_at = now()
+            WHERE id = $1
+            RETURNING *
+            "#,
+            id
+        )
+        .fetch_one(db)
+        .await?;
+
+        Ok(specification)
+    }
+
     pub async fn get_by_branch_id_with_product(
         db: &sqlx::PgPool,
         branch_id: Uuid,
@@ -103,7 +120,7 @@ impl Specification {
                 s.unit, 
                 s.created_at, 
                 s.updated_at, 
-                coalesce(array_agg((p.id, p.name, p.updated_at)) FILTER (WHERE p.id IS NOT NULL), '{}') AS "products: Vec<SimplifyProduct>"
+                coalesce(array_agg((p.id, p.name, p.updated_at)) FILTER (WHERE p.id IS NOT NULL AND p.deleted_at IS NULL), '{}') AS "products: Vec<SimplifyProduct>"
             FROM specifications s
                 LEFT JOIN product_specifications ps ON ps.specification_id = s.id
                 LEFT JOIN products p ON p.id = ps.product_id

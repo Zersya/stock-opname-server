@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::errors::{Errors, FieldValidator};
 use crate::models::branch::Branch;
 use crate::models::product::Product;
-use crate::models::requests::branch::RequestCreateBranch;
+use crate::models::requests::branch::RequestFormBranch;
 use crate::models::responses::DefaultResponse;
 
 use axum::extract::Path;
@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 pub async fn create(
     State(db): State<PgPool>,
-    Json(payload): Json<RequestCreateBranch>,
+    Json(payload): Json<RequestFormBranch>,
 ) -> Result<Json<Value>, Errors> {
     let branch = Branch::get_by_reference_id(&db, payload.reference_id).await;
 
@@ -66,6 +66,48 @@ pub async fn create(
             }
         }
     });
+
+    Ok(body.into_response())
+}
+
+pub async fn update(
+    State(db): State<PgPool>,
+    Path((branch_id,)): Path<(Uuid,)>,
+    Json(payload): Json<RequestFormBranch>,
+) -> Result<Json<Value>, Errors> {
+    let branch = Branch::get_by_id(&db, branch_id).await;
+
+    if branch.is_err() {
+        return Err(Errors::new(&[("branch_id", "not found")]));
+    }
+
+    let mut extractor = FieldValidator::validate(&payload);
+
+    let name = extractor.extract("name", Some(payload.name));
+    extractor.check()?;
+
+    let branch = Branch::update(&db, branch_id, name, payload.reference_id)
+        .await
+        .unwrap();
+
+    let body = DefaultResponse::new("ok", "update branch successfully".to_string())
+        .with_data(json!(branch));
+
+    Ok(body.into_response())
+}
+
+pub async fn get_by_id(
+    State(db): State<PgPool>,
+    Path((branch_id,)): Path<(Uuid,)>,
+) -> Result<Json<Value>, Errors> {
+    let branch = Branch::get_by_id(&db, branch_id).await;
+
+    if branch.is_err() {
+        return Err(Errors::new(&[("branch_id", "not found")]));
+    }
+
+    let body = DefaultResponse::new("ok", "get branch successfully".to_string())
+        .with_data(json!(branch.unwrap()));
 
     Ok(body.into_response())
 }

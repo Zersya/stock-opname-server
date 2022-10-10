@@ -56,3 +56,30 @@ pub async fn get_by_branch_id(
 
     Ok(body.into_response())
 }
+
+pub async fn delete(
+    State(db): State<PgPool>,
+    Path((branch_id, specification_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<Value>, Errors> {
+    let branch = Branch::get_by_id(&db, branch_id).await;
+
+    if branch.is_err() {
+        return Err(Errors::new(&[("branch_id", "branch not found")]));
+    }
+
+    let specification = Specification::get_by_id(&db, specification_id).await;
+
+    if specification.is_err() {
+        return Err(Errors::new(&[("specification_id", "specification not found")]));
+    }
+
+    let result = Specification::delete(&db, specification_id).await;
+
+    if result.is_err() {
+        return Err(Errors::new(&[("specification_id", "specification not found")]));
+    }
+
+    let body = DefaultResponse::new("ok", "delete specification successfully".to_string());
+
+    Ok(body.into_response())
+}
