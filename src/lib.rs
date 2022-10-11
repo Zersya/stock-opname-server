@@ -35,6 +35,7 @@ pub async fn axum() {
         .route("/branches/:id/sync", get(handlers::branch::sync))
         .route("/branches/:id/specification", post(handlers::specification::create))
         .route("/branches/:id/specification/:id", delete(handlers::specification::delete))
+        .route("/branches/:id/specification/:id/purchase", post(handlers::specification_history::create))
         .route("/branches/:id/specifications", get(handlers::specification::get_by_branch_id))
         .route("/branches/:id/products", get(handlers::product::get_all))
         .route("/branches/:id/set-product-specification", put(handlers::product::set_product_specification));

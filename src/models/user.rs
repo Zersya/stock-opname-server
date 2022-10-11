@@ -65,7 +65,7 @@ impl User {
         Ok(users)
     }
 
-    pub async fn find_by_email(
+    pub async fn get_by_email(
         db: &sqlx::PgPool,
         email: String,
     ) -> Result<User, sqlx::Error> {
@@ -76,6 +76,21 @@ impl User {
             WHERE email = $1
             "#,
             email
+        )
+        .fetch_one(db)
+        .await?;
+
+        Ok(user)
+    }
+
+    pub async fn get_by_id(db: &sqlx::PgPool, id: Uuid) -> Result<User, sqlx::Error> {
+        let user = sqlx::query_as!(
+            User,
+            r#"
+            SELECT * FROM users
+            WHERE id = $1
+            "#,
+            id
         )
         .fetch_one(db)
         .await?;

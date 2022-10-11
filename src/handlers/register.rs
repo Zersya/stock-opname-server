@@ -20,7 +20,7 @@ pub async fn register(
     let password = extractor.extract("password", Some(payload.password));
     extractor.check()?;
 
-    let user = User::find_by_email(&db, email.clone()).await;
+    let user = User::get_by_email(&db, email.clone()).await;
 
     if user.is_ok() {
         return Err(Errors::new(&[("email", "is already exists")]));

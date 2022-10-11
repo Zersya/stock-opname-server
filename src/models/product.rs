@@ -94,6 +94,7 @@ impl Product {
             WHERE p.branch_id = $1 AND p.deleted_at IS NULL
             GROUP BY
                 p.id
+            ORDER BY p.created_at DESC
             "#,
             branch_id
         )

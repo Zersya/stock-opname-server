@@ -1,6 +1,6 @@
 use crate::errors::{Errors, FieldValidator};
 use crate::models::branch::Branch;
-use crate::models::requests::specification::RequestCreateSpecification;
+use crate::models::requests::specification::RequestFormSpecification;
 use crate::models::responses::DefaultResponse;
 use crate::models::specification::Specification;
 
@@ -13,7 +13,7 @@ use uuid::Uuid;
 pub async fn create(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
-    Json(payload): Json<RequestCreateSpecification>,
+    Json(payload): Json<RequestFormSpecification>,
 ) -> Result<Json<Value>, Errors> {
     let branch = Branch::get_by_id(&db, branch_id).await;
 

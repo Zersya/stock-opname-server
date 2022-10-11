@@ -26,6 +26,7 @@ pub struct SpecificationWithProduct {
     pub updated_at: NaiveDateTime,
 
     pub products: Option<Vec<SimplifyProduct>>,
+    pub specification_histories: Option<Vec<SimplifySpecificationHistory>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Type)]
@@ -33,6 +34,16 @@ pub struct SimplifyProduct {
     pub id: Uuid,
     pub name: String,
     pub updated_at: NaiveDateTime,
+}
+
+#[derive(Serialize, Deserialize, Debug, Type)]
+pub struct SimplifySpecificationHistory {
+    pub id: Uuid,
+    pub created_by: Uuid,
+    pub note: String,
+    pub amount: i32,
+    pub price: i32,
+    pub created_at: NaiveDateTime,
 }
 
 impl Specification {
@@ -113,21 +124,32 @@ impl Specification {
         let specifications = sqlx::query_as!(
             SpecificationWithProduct,
             r#"
-            SELECT s.id, 
-                s.branch_id, 
-                s.name, 
-                s.amount, 
-                s.unit, 
-                s.created_at, 
-                s.updated_at, 
-                coalesce(array_agg((p.id, p.name, p.updated_at)) FILTER (WHERE p.id IS NOT NULL AND p.deleted_at IS NULL), '{}') AS "products: Vec<SimplifyProduct>"
-            FROM specifications s
+            SELECT
+                s.id,
+                s.branch_id,
+                s.name,
+                s.amount,
+                s.unit,
+                s.created_at,
+                s.updated_at,
+                coalesce(array_agg((p.id, p.name, p.updated_at)) FILTER (WHERE p.id IS NOT NULL
+                    AND p.deleted_at IS NULL), '{}') AS "products: Vec<SimplifyProduct>",
+                coalesce(array_agg((sh.id, sh.created_by, sh.note, sh.amount, sh.price, sh.created_at)
+                ORDER BY
+                    sh.created_at DESC) FILTER (WHERE sh.id IS NOT NULL 
+                    AND sh.created_at >= now() - interval '7 day'), '{}') AS "specification_histories: Vec<SimplifySpecificationHistory>"
+            FROM
+                specifications s
                 LEFT JOIN product_specifications ps ON ps.specification_id = s.id
                 LEFT JOIN products p ON p.id = ps.product_id
-
-            WHERE s.branch_id = $1 AND s.deleted_at IS NULL
+                LEFT JOIN specification_histories sh ON sh.specification_id = s.id
+            WHERE
+                s.branch_id = $1
+                AND s.deleted_at IS NULL
             GROUP BY
                 s.id
+            ORDER BY
+                s.created_at DESC
             "#,
             branch_id
         )
