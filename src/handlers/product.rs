@@ -1,4 +1,4 @@
-use crate::errors::Errors;
+use crate::errors::{Errors, FieldValidator};
 use crate::models::product::Product;
 use crate::models::product_specification::ProductSpecification;
 use crate::models::requests::product::RequestCreateProductSpecification;
@@ -36,6 +36,12 @@ pub async fn set_product_specification(
     Path((_,)): Path<(Uuid,)>,
     Json(payload): Json<RequestCreateProductSpecification>,
 ) -> Result<Json<Value>, Errors> {
+
+    let mut extractor = FieldValidator::validate(&payload);
+
+    let quantity = extractor.extract("quantity", Some(payload.quantity));
+    extractor.check()?;
+
     let product = Product::get_by_id(&db, payload.product_id).await;
 
     if product.is_err() {
@@ -51,7 +57,7 @@ pub async fn set_product_specification(
         )]));
     }
 
-    let result = ProductSpecification::create(&db, product.unwrap().id, specification.unwrap().id)
+    let result = ProductSpecification::create(&db, payload.product_id, payload.specification_id, quantity)
         .await
         .unwrap();
 

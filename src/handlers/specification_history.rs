@@ -24,6 +24,15 @@ pub async fn create(
         return Err(Errors::new(&[("branch_id", "branch not found")]));
     }
 
+    let specification = SpecificationHistory::get_by_id(&db, specification_id).await;
+
+    if specification.is_err() {
+        return Err(Errors::new(&[(
+            "specification_id",
+            "specification not found",
+        )]));
+    }
+
     let user = User::get_by_id(&db, payload.created_by).await;
 
     if user.is_err() {
@@ -32,16 +41,19 @@ pub async fn create(
 
     let mut extractor = FieldValidator::validate(&payload);
 
-    let amount = extractor.extract("amount", Some(payload.amount));
+    let quantity = extractor.extract("quantity", Some(payload.quantity));
+    let flow_type = extractor.extract("flow_type", Some(payload.flow_type));
     let price = extractor.extract("price", Some(payload.price));
     extractor.check()?;
 
     let specification = SpecificationHistory::create(
         &db,
         specification_id,
+        payload.transaction_item_id,
         payload.created_by,
         payload.note,
-        amount,
+        flow_type,
+        quantity,
         price,
     )
     .await

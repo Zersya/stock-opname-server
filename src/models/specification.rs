@@ -8,7 +8,7 @@ pub struct Specification {
     pub id: Uuid,
     pub branch_id: Uuid,
     pub name: String,
-    pub amount: i32,
+    pub quantity: i32,
     pub unit: String,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -20,7 +20,7 @@ pub struct SpecificationWithProduct {
     pub id: Uuid,
     pub branch_id: Uuid,
     pub name: String,
-    pub amount: i32,
+    pub quantity: i32,
     pub unit: String,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -33,15 +33,16 @@ pub struct SpecificationWithProduct {
 pub struct SimplifyProduct {
     pub id: Uuid,
     pub name: String,
+    pub quantity: i32,
     pub updated_at: NaiveDateTime,
 }
 
 #[derive(Serialize, Deserialize, Debug, Type)]
 pub struct SimplifySpecificationHistory {
     pub id: Uuid,
-    pub created_by: Uuid,
+    pub flow_type: String,
     pub note: String,
-    pub amount: i32,
+    pub quantity: i32,
     pub price: i32,
     pub created_at: NaiveDateTime,
 }
@@ -51,19 +52,19 @@ impl Specification {
         db: &sqlx::PgPool,
         branch_id: Uuid,
         name: String,
-        amount: i32,
+        quantity: i32,
         unit: String,
     ) -> Result<Specification, sqlx::Error> {
         let specification = sqlx::query_as!(
             Specification,
             r#"
-            INSERT INTO specifications (branch_id, name, amount, unit)
+            INSERT INTO specifications (branch_id, name, quantity, unit)
             VALUES ($1, $2, $3, $4)
             RETURNING *
             "#,
             branch_id,
             name,
-            amount,
+            quantity,
             unit
         )
         .fetch_one(db)
@@ -128,13 +129,13 @@ impl Specification {
                 s.id,
                 s.branch_id,
                 s.name,
-                s.amount,
+                s.quantity,
                 s.unit,
                 s.created_at,
                 s.updated_at,
-                coalesce(array_agg((p.id, p.name, p.updated_at)) FILTER (WHERE p.id IS NOT NULL
+                coalesce(array_agg((p.id, p.name, ps.quantity, p.updated_at)) FILTER (WHERE p.id IS NOT NULL
                     AND p.deleted_at IS NULL), '{}') AS "products: Vec<SimplifyProduct>",
-                coalesce(array_agg((sh.id, sh.created_by, sh.note, sh.amount, sh.price, sh.created_at)
+                coalesce(array_agg((sh.id, sh.flow_type, sh.note, sh.quantity, sh.price, sh.created_at)
                 ORDER BY
                     sh.created_at DESC) FILTER (WHERE sh.id IS NOT NULL 
                     AND sh.created_at >= now() - interval '7 day'), '{}') AS "specification_histories: Vec<SimplifySpecificationHistory>"

@@ -6,4 +6,6 @@ use validator_derive::Validate;
 pub struct RequestCreateProductSpecification {
     pub product_id: Uuid,
     pub specification_id: Uuid,
+    #[validate(range(min = 1))]
+    pub quantity: i32,
 }
