@@ -8,7 +8,7 @@ use validator_derive::Validate;
 pub struct RequestFormSpecification {
     pub name: String,
     pub unit: String,
-    pub amount: i32,
+    pub quantity: i32,
 }
 
 #[derive(Deserialize, Validate)]
@@ -21,7 +21,7 @@ pub struct RequestFormSpecificationHistory {
     #[validate(range(min = 1))]
     pub quantity: i32,
     #[validate(range(min = 10))]
-    pub price: i32,
+    pub price: f64,
 }
 
 

@@ -1,7 +1,8 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::Type;
 use uuid::Uuid;
+
+use super::{specification_history::SimplifySpecificationHistory, product::SimplifyProduct};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Specification {
@@ -29,23 +30,17 @@ pub struct SpecificationWithProduct {
     pub specification_histories: Option<Vec<SimplifySpecificationHistory>>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Type)]
-pub struct SimplifyProduct {
-    pub id: Uuid,
-    pub name: String,
-    pub quantity: i32,
-    pub updated_at: NaiveDateTime,
+#[derive(Serialize, Deserialize, Debug, sqlx::Type)]
+pub struct SimplifySpecification {
+    pub id: Option<Uuid>,
+    pub name: Option<String>,
+    pub specification_quantity: Option<i32>,
+    pub product_specification_quantity: Option<i32>,
+    pub unit: Option<String>,
+    pub unit_price: Option<f64>,
+    pub product_specification_price: Option<f64>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Type)]
-pub struct SimplifySpecificationHistory {
-    pub id: Uuid,
-    pub flow_type: String,
-    pub note: String,
-    pub quantity: i32,
-    pub price: i32,
-    pub created_at: NaiveDateTime,
-}
 
 impl Specification {
     pub async fn create(
@@ -135,7 +130,7 @@ impl Specification {
                 s.updated_at,
                 coalesce(array_agg((p.id, p.name, ps.quantity, p.updated_at)) FILTER (WHERE p.id IS NOT NULL
                     AND p.deleted_at IS NULL), '{}') AS "products: Vec<SimplifyProduct>",
-                coalesce(array_agg((sh.id, sh.flow_type, sh.note, sh.quantity, sh.price, sh.created_at)
+                coalesce(array_agg((sh.id, sh.flow_type, sh.note, sh.quantity, sh.price, sh.unit_price, sh.created_at)
                 ORDER BY
                     sh.created_at DESC) FILTER (WHERE sh.id IS NOT NULL 
                     AND sh.created_at >= now() - interval '7 day'), '{}') AS "specification_histories: Vec<SimplifySpecificationHistory>"

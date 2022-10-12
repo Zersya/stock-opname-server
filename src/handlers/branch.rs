@@ -159,13 +159,23 @@ pub async fn sync(
             let products = category["products"].as_array().unwrap();
 
             for product in products {
-                Product::update_by_reference_id(
+                let result = Product::update_by_reference_id(
                     &db,
                     Uuid::from_str(product["id"].as_str().unwrap()).unwrap(),
                     product["name"].to_string().replace("\"", ""),
                 )
-                .await
-                .unwrap();
+                .await;
+
+                if result.is_err() {
+                    Product::create(
+                        &db,
+                        branch.id,
+                        product["name"].to_string().replace("\"", ""),
+                        Uuid::parse_str(product["id"].as_str().unwrap()).unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                }
             }
         }
     });

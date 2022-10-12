@@ -25,10 +25,10 @@ pub async fn create(
 
     let name = extractor.extract("name", Some(payload.name));
     let unit = extractor.extract("unit", Some(payload.unit));
-    let amount = extractor.extract("amount", Some(payload.amount));
+    let quantity = extractor.extract("quantity", Some(payload.quantity));
     extractor.check()?;
 
-    let specification = Specification::create(&db, branch_id, name, amount, unit)
+    let specification = Specification::create(&db, branch_id, name, quantity, unit)
         .await
         .unwrap();
 

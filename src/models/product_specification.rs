@@ -14,7 +14,6 @@ pub struct ProductSpecification {
 }
 
 impl ProductSpecification {
-
     pub async fn create(
         db: &sqlx::PgPool,
         product_id: Uuid,
@@ -37,5 +36,48 @@ impl ProductSpecification {
 
         Ok(product_specification)
     }
-    
+
+    pub async fn update(
+        db: &sqlx::PgPool,
+        product_id: Uuid,
+        specification_id: Uuid,
+        quantity: i32,
+    ) -> Result<ProductSpecification, sqlx::Error> {
+        let product_specification = sqlx::query_as!(
+            ProductSpecification,
+            r#"
+            UPDATE product_specifications
+            SET quantity = $1
+            WHERE product_id = $2 AND specification_id = $3
+            RETURNING *
+            "#,
+            quantity,
+            product_id,
+            specification_id,
+        )
+        .fetch_one(db)
+        .await?;
+
+        Ok(product_specification)
+    }
+
+    pub async fn get_by_product_and_specification(
+        db: &sqlx::PgPool,
+        product_id: Uuid,
+        specification_id: Uuid,
+    ) -> Result<ProductSpecification, sqlx::Error> {
+        let product_specification = sqlx::query_as!(
+            ProductSpecification,
+            r#"
+            SELECT * FROM product_specifications
+            WHERE product_id = $1 AND specification_id = $2
+            "#,
+            product_id,
+            specification_id
+        )
+        .fetch_one(db)
+        .await?;
+
+        Ok(product_specification)
+    }
 }

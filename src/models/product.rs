@@ -1,7 +1,8 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::{Type};
 use uuid::Uuid;
+
+use super::specification::SimplifySpecification;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Product {
@@ -19,21 +20,21 @@ pub struct ProductWithSpecifications {
     pub id: Uuid,
     pub branch_id: Uuid,
     pub name: String,
+    pub cost_of_product: Option<f64>,
     pub reference_id: Uuid,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 
     pub specifications: Option<Vec<SimplifySpecification>>,
 }
-#[derive(Serialize, Deserialize, Debug, Type)]
-pub struct SimplifySpecification {
+
+#[derive(Serialize, Deserialize, Debug, sqlx::Type)]
+pub struct SimplifyProduct {
     pub id: Uuid,
     pub name: String,
-    pub specification_quantity: i32,
-    pub product_specification_quantity: i32,
-    pub unit: String,
+    pub quantity: i32,
+    pub updated_at: NaiveDateTime,
 }
-
 
 impl Product {
     pub async fn create(
@@ -84,14 +85,28 @@ impl Product {
                 p.id,
                 p.branch_id,
                 p.name,
+                sum(sh.unit_price * ps.quantity) as cost_of_product,
                 p.reference_id,
                 p.created_at,
                 p.updated_at,
-                coalesce(array_agg((s.id, s.name, s.quantity, ps.quantity, s.unit)) FILTER (WHERE s.id IS NOT NULL AND s.deleted_at IS NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
+                coalesce(array_agg((s.id, s.name, s.quantity, ps.quantity, s.unit, sh.unit_price, (sh.unit_price * ps.quantity))) FILTER (WHERE s.id IS NOT NULL AND s.deleted_at IS NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
             FROM
                 products p
                 LEFT JOIN product_specifications ps ON ps.product_id = p.id
                 LEFT JOIN specifications s ON s.id = ps.specification_id
+                LEFT JOIN LATERAL (
+                    SELECT
+                        sh.unit_price,
+                        sh.specification_id,
+                        sh.created_at
+                    FROM
+                        specification_histories sh
+                    WHERE
+                        sh.specification_id = s.id
+                    ORDER BY
+                        sh.created_at DESC
+                    LIMIT 1) sh ON sh.specification_id = s.id
+
             WHERE p.branch_id = $1 AND p.deleted_at IS NULL
             GROUP BY
                 p.id

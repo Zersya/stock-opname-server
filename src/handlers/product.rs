@@ -36,7 +36,6 @@ pub async fn set_product_specification(
     Path((_,)): Path<(Uuid,)>,
     Json(payload): Json<RequestCreateProductSpecification>,
 ) -> Result<Json<Value>, Errors> {
-
     let mut extractor = FieldValidator::validate(&payload);
 
     let quantity = extractor.extract("quantity", Some(payload.quantity));
@@ -57,9 +56,36 @@ pub async fn set_product_specification(
         )]));
     }
 
-    let result = ProductSpecification::create(&db, payload.product_id, payload.specification_id, quantity)
+    let product_specification = ProductSpecification::get_by_product_and_specification(
+        &db,
+        payload.product_id,
+        payload.specification_id,
+    )
+    .await;
+
+    if product_specification.is_ok() {
+        let result = ProductSpecification::update(
+            &db,
+            payload.product_id,
+            payload.specification_id,
+            quantity,
+        )
         .await
         .unwrap();
+
+        let body = DefaultResponse::new(
+            "ok",
+            "update product specification successfully".to_string(),
+        )
+        .with_data(json!(result));
+
+        return Ok(body.into_response());
+    }
+
+    let result =
+        ProductSpecification::create(&db, payload.product_id, payload.specification_id, quantity)
+            .await
+            .unwrap();
 
     let body = DefaultResponse::new(
         "ok",

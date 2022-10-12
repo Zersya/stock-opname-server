@@ -11,10 +11,22 @@ pub struct SpecificationHistory {
     pub quantity: i32,
     pub transaction_item_id: Option<Uuid>,
     pub note: Option<String>,
-    pub price: Option<i32>,
+    pub price: Option<f64>,
+    pub unit_price: Option<f64>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
     pub deleted_at: Option<NaiveDateTime>,
+}
+
+#[derive(Serialize, Deserialize, Debug, sqlx::Type)]
+pub struct SimplifySpecificationHistory {
+    pub id: Uuid,
+    pub flow_type: String,
+    pub note: String,
+    pub quantity: i32,
+    pub price: f64,
+    pub unit_price: f64,
+    pub created_at: NaiveDateTime,
 }
 
 impl SpecificationHistory {
@@ -26,13 +38,14 @@ impl SpecificationHistory {
         note: String,
         flow_type: String,
         quantity: i32,
-        price: i32,
+        price: f64,
+        unit_price: f64,
     ) -> Result<SpecificationHistory, sqlx::Error> {
         let specification_history = sqlx::query_as!(
             SpecificationHistory,
             r#"
-            INSERT INTO specification_histories (flow_type, specification_id, created_by, quantity, transaction_item_id, note, price)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO specification_histories (flow_type, specification_id, created_by, quantity, transaction_item_id, note, price, unit_price)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             "#,
             flow_type,
@@ -41,7 +54,8 @@ impl SpecificationHistory {
             quantity,
             transaction_item_id,
             note,
-            price
+            price,
+            unit_price
         )
         .fetch_one(db)
         .await?;

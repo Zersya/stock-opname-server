@@ -4,6 +4,7 @@ use crate::models::requests::specification::{
      RequestFormSpecificationHistory,
 };
 use crate::models::responses::DefaultResponse;
+use crate::models::specification::Specification;
 use crate::models::specification_history::SpecificationHistory;
 use crate::models::user::User;
 
@@ -24,7 +25,7 @@ pub async fn create(
         return Err(Errors::new(&[("branch_id", "branch not found")]));
     }
 
-    let specification = SpecificationHistory::get_by_id(&db, specification_id).await;
+    let specification = Specification::get_by_id(&db, specification_id).await;
 
     if specification.is_err() {
         return Err(Errors::new(&[(
@@ -55,6 +56,7 @@ pub async fn create(
         flow_type,
         quantity,
         price,
+        price / quantity as f64,
     )
     .await
     .unwrap();
