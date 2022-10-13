@@ -135,6 +135,24 @@ impl Product {
         Ok(product)
     }
 
+    pub async fn get_by_reference_id(
+        db: &sqlx::PgPool,
+        reference_id: Uuid,
+    ) -> Result<Product, sqlx::Error> {
+        let product = sqlx::query_as!(
+            Product,
+            r#"
+            SELECT * FROM products
+            WHERE reference_id = $1
+            "#,
+            reference_id
+        )
+        .fetch_one(db)
+        .await?;
+
+        Ok(product)
+    }
+
     pub async fn get_by_branch_id(
         db: &sqlx::PgPool,
         branch_id: Uuid,

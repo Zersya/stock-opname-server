@@ -1,8 +1,6 @@
 use crate::errors::{Errors, FieldValidator};
 use crate::models::branch::Branch;
-use crate::models::requests::specification::{
-     RequestFormSpecificationHistory,
-};
+use crate::models::requests::specification::RequestFormSpecificationHistory;
 use crate::models::responses::DefaultResponse;
 use crate::models::specification::Specification;
 use crate::models::specification_history::SpecificationHistory;
