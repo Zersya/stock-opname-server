@@ -45,12 +45,14 @@ pub async fn create(
     let price = extractor.extract("price", Some(payload.price));
     extractor.check()?;
 
+    let mut db_transaction = db.begin().await.unwrap();
+
     let specification = SpecificationHistory::create(
-        &db,
+        &mut db_transaction,
         specification_id,
         payload.transaction_item_id,
         payload.created_by,
-        payload.note,
+        Some(payload.note),
         flow_type,
         quantity,
         price,
@@ -58,6 +60,15 @@ pub async fn create(
     )
     .await
     .unwrap();
+
+    let commit = db_transaction.commit().await;
+
+    if commit.is_err() {
+        return Err(Errors::new(&[(
+            "commit_db_transaction",
+            "failed to commit db_transaction",
+        )]));
+    }
 
     let body = DefaultResponse::new("ok", "create specification successfully".to_string())
         .with_data(json!(specification));

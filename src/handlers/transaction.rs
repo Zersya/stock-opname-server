@@ -3,6 +3,7 @@ use crate::models::branch::Branch;
 use crate::models::product::Product;
 use crate::models::requests::transaction::RequestCreateTransaction;
 use crate::models::responses::DefaultResponse;
+use crate::models::specification_history::SpecificationHistory;
 use crate::models::transaction::{SimplifyTransaction, Transaction, TransactionItem};
 use crate::models::user::User;
 
@@ -43,30 +44,57 @@ pub async fn create(
     }
 
     for item in payload.items {
-        let product = Product::get_by_reference_id(&db, item.product_reference_id).await;
+        let result =
+            Product::get_by_reference_id_with_specification(&db, item.product_reference_id).await;
 
-        if product.is_err() {
+        if result.is_err() {
             return Err(Errors::new(&[(
                 "product_id",
                 "product with ref id not found",
             )]));
         }
 
-        let transaction_item = TransactionItem::create(
+        let product = result.unwrap();
+
+        let result_transaction_item = TransactionItem::create(
             &mut db_transaction,
             transaction.as_ref().unwrap().id,
-            product.as_ref().unwrap().id,
-            product.unwrap().name,
+            product.id,
+            product.name,
             item.product_reference_id,
             item.product_quantity,
         )
         .await;
 
-        if transaction_item.is_err() {
+        if result_transaction_item.is_err() {
             return Err(Errors::new(&[(
                 "transaction_item",
                 "failed to create transaction item",
             )]));
+        }
+
+        let transaction_item = result_transaction_item.unwrap();
+
+        for specification in product.specifications.unwrap() {
+            let product_spec_price = specification.product_specification_price.unwrap();
+            let product_spec_quantity = specification.product_specification_quantity.unwrap();
+            let spec_unit_price = specification.unit_price.unwrap();
+            let transaction_item_spec_quantity =
+                product_spec_quantity * transaction_item.product_quantity;
+
+            SpecificationHistory::create(
+                &mut db_transaction,
+                specification.id.unwrap(),
+                Some(transaction_item.id),
+                Uuid::parse_str("9f175978-100f-431e-97ad-d4f1ab54ba76").unwrap(),
+                None,
+                String::from("OUT"),
+                transaction_item_spec_quantity,
+                transaction_item_spec_quantity as f64 * product_spec_price,
+                spec_unit_price,
+            )
+            .await
+            .unwrap();
         }
     }
 

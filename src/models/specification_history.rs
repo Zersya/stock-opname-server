@@ -20,22 +20,22 @@ pub struct SpecificationHistory {
 
 #[derive(Serialize, Deserialize, Debug, sqlx::Type)]
 pub struct SimplifySpecificationHistory {
-    pub id: Uuid,
-    pub flow_type: String,
-    pub note: String,
-    pub quantity: i32,
-    pub price: f64,
-    pub unit_price: f64,
-    pub created_at: NaiveDateTime,
+    pub id: Option<Uuid>,
+    pub flow_type: Option<String>,
+    pub note: Option<String>,
+    pub quantity: Option<i32>,
+    pub price: Option<f64>,
+    pub unit_price: Option<f64>,
+    pub created_at: Option<NaiveDateTime>,
 }
 
 impl SpecificationHistory {
     pub async fn create(
-        db: &sqlx::PgPool,
+        db_trx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         specification_id: Uuid,
         transaction_item_id: Option<Uuid>,
         created_by: Uuid,
-        note: String,
+        note: Option<String>,
         flow_type: String,
         quantity: i32,
         price: f64,
@@ -57,7 +57,7 @@ impl SpecificationHistory {
             price,
             unit_price
         )
-        .fetch_one(db)
+        .fetch_one(db_trx)
         .await?;
 
         Ok(specification_history)

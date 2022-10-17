@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
 use uuid::Uuid;
 
 use super::specification::SimplifySpecification;
@@ -20,11 +21,13 @@ pub struct ProductWithSpecifications {
     pub id: Uuid,
     pub branch_id: Uuid,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cost_of_product: Option<f64>,
     pub reference_id: Uuid,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub specifications: Option<Vec<SimplifySpecification>>,
 }
 
@@ -147,6 +150,62 @@ impl Product {
             "#,
             reference_id
         )
+        .fetch_one(db)
+        .await?;
+
+        Ok(product)
+    }
+
+    pub async fn get_by_reference_id_with_specification(
+        db: &sqlx::PgPool,
+        reference_id: Uuid,
+    ) -> Result<ProductWithSpecifications, sqlx::Error> {
+        let product = sqlx::query!(
+                r#"
+                SELECT
+                p.id,
+                p.branch_id,
+                p.name,
+                sum(sh.unit_price * ps.quantity) as cost_of_product,
+                p.reference_id,
+                p.created_at,
+                p.updated_at,
+                coalesce(array_agg((s.id, s.name, s.quantity, ps.quantity, s.unit, sh.unit_price, (sh.unit_price * ps.quantity))) FILTER (WHERE s.id IS NOT NULL AND s.deleted_at IS NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
+            FROM
+                products p
+                LEFT JOIN product_specifications ps ON ps.product_id = p.id
+                LEFT JOIN specifications s ON s.id = ps.specification_id
+                LEFT JOIN LATERAL (
+                    SELECT
+                        sh.unit_price,
+                        sh.specification_id,
+                        sh.created_at
+                    FROM
+                        specification_histories sh
+                    WHERE
+                        sh.specification_id = s.id
+                    ORDER BY
+                        sh.created_at DESC
+                    LIMIT 1) sh ON sh.specification_id = s.id
+            WHERE p.reference_id = $1 AND p.deleted_at IS NULL
+            GROUP BY
+                p.id
+                ORDER BY p.created_at DESC
+                "#,
+        reference_id
+        )
+        .map(|record| -> ProductWithSpecifications {
+            ProductWithSpecifications {
+                id: record.id,
+                branch_id: record.branch_id,
+                name: record.name,
+                cost_of_product: record.cost_of_product,
+                reference_id: record.reference_id,
+                created_at: record.created_at,
+                updated_at: record.updated_at,
+                specifications: record.specifications,
+            }
+        })
         .fetch_one(db)
         .await?;
 

@@ -32,12 +32,19 @@ pub struct SpecificationWithProduct {
 
 #[derive(Serialize, Deserialize, Debug, sqlx::Type)]
 pub struct SimplifySpecification {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub specification_quantity: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub product_specification_quantity: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unit_price: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub product_specification_price: Option<f64>,
 }
 
@@ -128,7 +135,7 @@ impl Specification {
                 s.unit,
                 s.created_at,
                 s.updated_at,
-                coalesce(array_agg((p.id, p.name, ps.quantity, p.updated_at)) FILTER (WHERE p.id IS NOT NULL
+                coalesce(array_agg((p.id, p.name, ps.quantity, p.updated_at)) FILTER (WHERE p.id IS NOT NULL AND s.id = ps.specification_id
                     AND p.deleted_at IS NULL), '{}') AS "products: Vec<SimplifyProduct>",
                 coalesce(array_agg((sh.id, sh.flow_type, sh.note, sh.quantity, sh.price, sh.unit_price, sh.created_at)
                 ORDER BY
@@ -137,7 +144,7 @@ impl Specification {
             FROM
                 specifications s
                 LEFT JOIN product_specifications ps ON ps.specification_id = s.id
-                LEFT JOIN products p ON p.id = ps.product_id
+                LEFT JOIN products p ON p.id = ps.product_id AND s.id = ps.specification_id
                 LEFT JOIN specification_histories sh ON sh.specification_id = s.id
             WHERE
                 s.branch_id = $1
