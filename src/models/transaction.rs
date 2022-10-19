@@ -124,26 +124,26 @@ impl SimplifyTransaction {
         Ok(transaction)
     }
 
-    pub async fn get_all_with_items(db: &sqlx::PgPool) -> Result<Vec<Self>, sqlx::Error> {
-        let transactions = sqlx::query_as!(
-            SimplifyTransaction,
-            r#"
-                SELECT
-                    t.id,
-                    t.created_by,
-                    t.note,
-                    coalesce(array_agg((ti.id, ti.product_id, ti.product_name, ti.product_reference_id, ti.product_quantity, ti.created_at)) FILTER (WHERE ti.id IS NOT NULL AND ti.deleted_at IS NULL), '{}') AS "items: Vec<SimplifyTransactionItem>",
-                    t.created_at
-                FROM
-                    transactions t
-                    LEFT JOIN transaction_items ti ON ti.transaction_id = t.id
-                GROUP BY
-                    t.id
-            "#
-        )
-        .fetch_all(db)
-        .await?;
-
-        Ok(transactions)
-    }
+//    pub async fn get_all_with_items(db: &sqlx::PgPool) -> Result<Vec<Self>, sqlx::Error> {
+//        let transactions = sqlx::query_as!(
+//            SimplifyTransaction,
+//            r#"
+//                SELECT
+//                    t.id,
+//                    t.created_by,
+//                    t.note,
+//                    coalesce(array_agg((ti.id, ti.product_id, ti.product_name, ti.product_reference_id, ti.product_quantity, ti.created_at)) FILTER (WHERE ti.id IS NOT NULL AND ti.deleted_at IS NULL), '{}') AS "items: Vec<SimplifyTransactionItem>",
+//                    t.created_at
+//                FROM
+//                    transactions t
+//                    LEFT JOIN transaction_items ti ON ti.transaction_id = t.id
+//                GROUP BY
+//                    t.id
+//            "#
+//        )
+//        .fetch_all(db)
+//        .await?;
+//
+//        Ok(transactions)
+//    }
 }

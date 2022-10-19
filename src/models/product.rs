@@ -1,6 +1,5 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
 use uuid::Uuid;
 
 use super::specification::SimplifySpecification;
@@ -63,18 +62,18 @@ impl Product {
         Ok(product)
     }
 
-    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Product>, sqlx::Error> {
-        let products = sqlx::query_as!(
-            Product,
-            r#"
-            SELECT * FROM products
-            "#,
-        )
-        .fetch_all(db)
-        .await?;
-
-        Ok(products)
-    }
+//    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Product>, sqlx::Error> {
+//        let products = sqlx::query_as!(
+//            Product,
+//            r#"
+//            SELECT * FROM products
+//            "#,
+//        )
+//        .fetch_all(db)
+//        .await?;
+//
+//        Ok(products)
+//    }
 
     // one to many get all product with many specifications
     pub async fn get_all_with_specifications(
@@ -138,23 +137,23 @@ impl Product {
         Ok(product)
     }
 
-    pub async fn get_by_reference_id(
-        db: &sqlx::PgPool,
-        reference_id: Uuid,
-    ) -> Result<Product, sqlx::Error> {
-        let product = sqlx::query_as!(
-            Product,
-            r#"
-            SELECT * FROM products
-            WHERE reference_id = $1
-            "#,
-            reference_id
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(product)
-    }
+//    pub async fn get_by_reference_id(
+//        db: &sqlx::PgPool,
+//        reference_id: Uuid,
+//    ) -> Result<Product, sqlx::Error> {
+//        let product = sqlx::query_as!(
+//            Product,
+//            r#"
+//            SELECT * FROM products
+//            WHERE reference_id = $1
+//            "#,
+//            reference_id
+//        )
+//        .fetch_one(db)
+//        .await?;
+//
+//        Ok(product)
+//    }
 
     pub async fn get_by_reference_id_with_specification(
         db: &sqlx::PgPool,
@@ -212,49 +211,49 @@ impl Product {
         Ok(product)
     }
 
-    pub async fn get_by_branch_id(
-        db: &sqlx::PgPool,
-        branch_id: Uuid,
-    ) -> Result<Vec<Product>, sqlx::Error> {
-        let products = sqlx::query_as!(
-            Product,
-            r#"
-            SELECT * FROM products
-            WHERE branch_id = $1
-            "#,
-            branch_id
-        )
-        .fetch_all(db)
-        .await?;
+//    pub async fn get_by_branch_id(
+//        db: &sqlx::PgPool,
+//        branch_id: Uuid,
+//    ) -> Result<Vec<Product>, sqlx::Error> {
+//        let products = sqlx::query_as!(
+//            Product,
+//            r#"
+//            SELECT * FROM products
+//            WHERE branch_id = $1
+//            "#,
+//            branch_id
+//        )
+//        .fetch_all(db)
+//        .await?;
+//
+//        Ok(products)
+//    }
 
-        Ok(products)
-    }
-
-    pub async fn update(
-        db: &sqlx::PgPool,
-        id: Uuid,
-        branch_id: Uuid,
-        name: String,
-        reference_id: Uuid,
-    ) -> Result<Product, sqlx::Error> {
-        let product = sqlx::query_as!(
-            Product,
-            r#"
-            UPDATE products
-            SET branch_id = $2, name = $3, reference_id = $4
-            WHERE id = $1
-            RETURNING *
-            "#,
-            id,
-            branch_id,
-            name,
-            reference_id
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(product)
-    }
+//    pub async fn update(
+//        db: &sqlx::PgPool,
+//        id: Uuid,
+//        branch_id: Uuid,
+//        name: String,
+//        reference_id: Uuid,
+//    ) -> Result<Product, sqlx::Error> {
+//        let product = sqlx::query_as!(
+//            Product,
+//            r#"
+//            UPDATE products
+//            SET branch_id = $2, name = $3, reference_id = $4
+//            WHERE id = $1
+//            RETURNING *
+//            "#,
+//            id,
+//            branch_id,
+//            name,
+//            reference_id
+//        )
+//        .fetch_one(db)
+//        .await?;
+//
+//        Ok(product)
+//    }
 
     pub async fn update_by_reference_id(
         db: &sqlx::PgPool,
@@ -278,19 +277,19 @@ impl Product {
         Ok(product)
     }
 
-    pub async fn delete(db: &sqlx::PgPool, id: Uuid) -> Result<Product, sqlx::Error> {
-        let product = sqlx::query_as!(
-            Product,
-            r#"
-            DELETE FROM products
-            WHERE id = $1
-            RETURNING *
-            "#,
-            id
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(product)
-    }
+//    pub async fn delete(db: &sqlx::PgPool, id: Uuid) -> Result<Product, sqlx::Error> {
+//        let product = sqlx::query_as!(
+//            Product,
+//            r#"
+//            DELETE FROM products
+//            WHERE id = $1
+//            RETURNING *
+//            "#,
+//            id
+//        )
+//        .fetch_one(db)
+//        .await?;
+//
+//        Ok(product)
+//    }
 }

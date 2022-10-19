@@ -75,18 +75,18 @@ impl Specification {
         Ok(specification)
     }
 
-    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Specification>, sqlx::Error> {
-        let specifications = sqlx::query_as!(
-            Specification,
-            r#"
-            SELECT * FROM specifications
-            "#,
-        )
-        .fetch_all(db)
-        .await?;
-
-        Ok(specifications)
-    }
+//    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Specification>, sqlx::Error> {
+//        let specifications = sqlx::query_as!(
+//            Specification,
+//            r#"
+//            SELECT * FROM specifications
+//            "#,
+//        )
+//        .fetch_all(db)
+//        .await?;
+//
+//        Ok(specifications)
+//    }
 
     pub async fn get_by_id(db: &sqlx::PgPool, id: Uuid) -> Result<Specification, sqlx::Error> {
         let specification = sqlx::query_as!(

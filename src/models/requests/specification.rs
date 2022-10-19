@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use serde::Deserialize;
 use uuid::Uuid;
 use validator_derive::Validate;

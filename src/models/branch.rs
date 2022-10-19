@@ -37,18 +37,18 @@ impl Branch {
         Ok(branch)
     }
 
-    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Branch>, sqlx::Error> {
-        let branches = sqlx::query_as!(
-            Branch,
-            r#"
-            SELECT * FROM branches
-            "#,
-        )
-        .fetch_all(db)
-        .await?;
-
-        Ok(branches)
-    }
+//    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Branch>, sqlx::Error> {
+//        let branches = sqlx::query_as!(
+//            Branch,
+//            r#"
+//            SELECT * FROM branches
+//            "#,
+//        )
+//        .fetch_all(db)
+//        .await?;
+//
+//        Ok(branches)
+//    }
 
     pub async fn get_by_id(db: &sqlx::PgPool, id: Uuid) -> Result<Branch, sqlx::Error> {
         let branch = sqlx::query_as!(
@@ -65,23 +65,23 @@ impl Branch {
         Ok(branch)
     }
 
-    pub async fn get_by_user_id(
-        db: &sqlx::PgPool,
-        user_id: Uuid,
-    ) -> Result<Vec<Branch>, sqlx::Error> {
-        let branches = sqlx::query_as!(
-            Branch,
-            r#"
-            SELECT * FROM branches
-            WHERE user_id = $1
-            "#,
-            user_id
-        )
-        .fetch_all(db)
-        .await?;
-
-        Ok(branches)
-    }
+//    pub async fn get_by_user_id(
+//        db: &sqlx::PgPool,
+//        user_id: Uuid,
+//    ) -> Result<Vec<Branch>, sqlx::Error> {
+//        let branches = sqlx::query_as!(
+//            Branch,
+//            r#"
+//            SELECT * FROM branches
+//            WHERE user_id = $1
+//            "#,
+//            user_id
+//        )
+//        .fetch_all(db)
+//        .await?;
+//
+//        Ok(branches)
+//    }
 
     pub async fn get_by_reference_id(
         db: &sqlx::PgPool,
@@ -125,19 +125,19 @@ impl Branch {
         Ok(branch)
     }
 
-    pub async fn delete(db: &sqlx::PgPool, id: Uuid) -> Result<Branch, sqlx::Error> {
-        let branch = sqlx::query_as!(
-            Branch,
-            r#"
-            DELETE FROM branches
-            WHERE id = $1
-            RETURNING *
-            "#,
-            id
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(branch)
-    }
+//    pub async fn delete(db: &sqlx::PgPool, id: Uuid) -> Result<Branch, sqlx::Error> {
+//        let branch = sqlx::query_as!(
+//            Branch,
+//            r#"
+//            DELETE FROM branches
+//            WHERE id = $1
+//            RETURNING *
+//            "#,
+//            id
+//        )
+//        .fetch_one(db)
+//        .await?;
+//
+//        Ok(branch)
+//    }
 }

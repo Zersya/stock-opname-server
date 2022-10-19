@@ -1,0 +1,24 @@
+version: "3"
+
+services:
+    webserver:
+        image: zeinersyad/stock_opname_server:${ENV}
+        container_name: ${APP_NAME}_server
+        restart: unless-stopped
+        working_dir: /var/www
+        tty: true
+        environment:
+            SERVICE_NAME: "${APP_NAME}_server"
+            SERVICE_TAGS: "${ENV}"
+            DATABASE_URL: "${DATABASE_URL}"
+            APP_NAME: "${APP_NAME}"
+            APP_HOST: "${APP_HOST}"
+            APP_KEY: "${APPKEY}"
+            SERVER_HOST: "${SERVER_HOST}"
+            SERVER_PORT: "${SERVER_PORT}"
+            PG_USER: "${PG_USER}"
+            PG_PASSWORD: "${PG_PASSWORD}"
+            PG_HOST: "${PG_HOST}"
+            PG_PORT: "${PG_PORT}"
+            PG_DBNAME: "${PG_DBNAME}"
+            PG_POOLMAXSIZE: "${PG_POOLMAXSIZE}"

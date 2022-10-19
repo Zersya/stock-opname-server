@@ -63,34 +63,34 @@ impl SpecificationHistory {
         Ok(specification_history)
     }
 
-    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<SpecificationHistory>, sqlx::Error> {
-        let specification_histories = sqlx::query_as!(
-            SpecificationHistory,
-            r#"
-            SELECT * FROM specification_histories
-            "#,
-        )
-        .fetch_all(db)
-        .await?;
+//    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<SpecificationHistory>, sqlx::Error> {
+//        let specification_histories = sqlx::query_as!(
+//            SpecificationHistory,
+//            r#"
+//            SELECT * FROM specification_histories
+//            "#,
+//        )
+//        .fetch_all(db)
+//        .await?;
+//
+//        Ok(specification_histories)
+//    }
 
-        Ok(specification_histories)
-    }
-
-    pub async fn get_by_id(
-        db: &sqlx::PgPool,
-        id: Uuid,
-    ) -> Result<SpecificationHistory, sqlx::Error> {
-        let specification_history = sqlx::query_as!(
-            SpecificationHistory,
-            r#"
-            SELECT * FROM specification_histories
-            WHERE id = $1
-            "#,
-            id
-        )
-        .fetch_one(db)
-        .await?;
-
-        Ok(specification_history)
-    }
+//    pub async fn get_by_id(
+//        db: &sqlx::PgPool,
+//        id: Uuid,
+//    ) -> Result<SpecificationHistory, sqlx::Error> {
+//        let specification_history = sqlx::query_as!(
+//            SpecificationHistory,
+//            r#"
+//            SELECT * FROM specification_histories
+//            WHERE id = $1
+//            "#,
+//            id
+//        )
+//        .fetch_one(db)
+//        .await?;
+//
+//        Ok(specification_history)
+//    }
 }

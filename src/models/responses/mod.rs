@@ -40,10 +40,10 @@ impl DefaultResponse {
         self
     }
 
-    pub fn with_meta(mut self, meta: serde_json::Value) -> Self {
-        self.meta = Some(meta);
-        self
-    }
+//    pub fn with_meta(mut self, meta: serde_json::Value) -> Self {
+//        self.meta = Some(meta);
+//        self
+//    }
 
     pub fn into_response(self) -> Json<Value> {
         Json(json!(self))

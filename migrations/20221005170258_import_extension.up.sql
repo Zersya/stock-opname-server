@@ -1,2 +1,2 @@
 -- Add up migration script here
--- sql remove extension if exists
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
