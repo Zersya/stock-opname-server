@@ -78,33 +78,60 @@ pub async fn product_specifications(
             i32,
         ) = row.unwrap();
 
+        let name = name.to_lowercase();
+        let unit_name = unit_name.to_lowercase();
+
         let lowest_price = (Decimal::from(raw_price) / Decimal::from(smallest_unit))
             .round_dp(2)
             .to_f64()
             .expect("failed to convert to f64");
 
-        match Specification::create_with_db_trx(
-            &mut db_transaction,
-            branch_id,
-            name.to_lowercase(),
-            smallest_unit,
-            unit_name.to_lowercase(),
-            unit,
-            lowest_price,
-            raw_price,
-        )
-        .await
-        {
-            Ok(_) => (),
-            Err(e) => {
-                Logger::new(e.to_string()).log();
+        let specification = Specification::get_by_name_and_branch_id(&db, &name, &branch_id).await;
 
+        if specification.is_ok() {
+            let spec = Specification::update_with_db_trx_by_name_and_branch_id(
+                &mut db_transaction,
+                &branch_id,
+                &name,
+                &smallest_unit,
+                &unit_name,
+                &unit,
+                &lowest_price,
+                &raw_price,
+            )
+            .await;
+
+            if spec.is_err() {
                 db_transaction.rollback().await.unwrap();
-
                 return Err(Errors::new(&[(
                     "specification",
-                    "failed to create specification",
+                    "failed to update specification",
                 )]));
+            }
+        } else {
+            match Specification::create_with_db_trx(
+                &mut db_transaction,
+                branch_id,
+                name,
+                smallest_unit,
+                unit_name,
+                unit,
+                lowest_price,
+                raw_price,
+            )
+            .await
+            {
+                Ok(_) => (),
+                Err(e) => {
+                    Logger::new(e.to_string()).log();
+
+                    db_transaction.rollback().await.unwrap();
+
+                    return Err(Errors::new(&[(
+                        "specification",
+                        "failed to create specification",
+                    )]));
+                }
             }
         }
     }
@@ -117,30 +144,6 @@ pub async fn product_specifications(
             "failed to commit db_transaction",
         )]));
     }
-
-    // if let Some(result) = iter.next() {
-    //     let (no, name, unit, minimum_unit, unit_name, lowest_price, price): (
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //     ) = match result {
-    //         Ok((no, name, unit, minimum_unit, unit_name, lowest_price, price)) => {
-    //             (no, name, unit, minimum_unit, unit_name, lowest_price, price)
-    //         }
-    //         Err(e) => {
-    //             Logger::new(e.to_string()).log();
-
-    //             return Err(Errors::new(&[("file", "invalid file")]));
-    //         }
-    //     };
-
-    // } else {
-    //     return Err(Errors::new(&[("result", "error")]));
-    // }
 
     let body = DefaultResponse::new("ok", "success to import product specifications".to_string());
     Ok(body.into_response())

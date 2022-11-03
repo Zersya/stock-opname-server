@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{specification_history::SimplifySpecificationHistory, product::SimplifyProduct};
+use super::{product::SimplifyProduct, specification_history::SimplifySpecificationHistory};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Specification {
@@ -53,7 +53,6 @@ pub struct SimplifySpecification {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub product_specification_price: Option<f64>,
 }
-
 
 impl Specification {
     pub async fn create(
@@ -118,18 +117,50 @@ impl Specification {
         Ok(specification)
     }
 
-//    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Specification>, sqlx::Error> {
-//        let specifications = sqlx::query_as!(
-//            Specification,
-//            r#"
-//            SELECT * FROM specifications
-//            "#,
-//        )
-//        .fetch_all(db)
-//        .await?;
-//
-//        Ok(specifications)
-//    }
+    pub async fn update_with_db_trx_by_name_and_branch_id(
+        db_trx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        branch_id: &Uuid,
+        name: &String,
+        smallest_unit: &i32,
+        unit_name: &String,
+        unit: &String,
+        lowest_price: &f64,
+        raw_price: &i32,
+    ) -> Result<Specification, sqlx::Error> {
+        let specification = sqlx::query_as!(
+            Specification,
+            r#"
+            UPDATE specifications
+            SET smallest_unit = $1, unit_name = $2, unit = $3, lowest_price = $4, raw_price = $5
+            WHERE branch_id = $6 AND name = $7
+            RETURNING *
+            "#,
+            smallest_unit,
+            unit_name,
+            unit,
+            lowest_price,
+            raw_price,
+            branch_id,
+            name
+        )
+        .fetch_one(db_trx)
+        .await?;
+
+        Ok(specification)
+    }
+
+    //    pub async fn get_all(db: &sqlx::PgPool) -> Result<Vec<Specification>, sqlx::Error> {
+    //        let specifications = sqlx::query_as!(
+    //            Specification,
+    //            r#"
+    //            SELECT * FROM specifications
+    //            "#,
+    //        )
+    //        .fetch_all(db)
+    //        .await?;
+    //
+    //        Ok(specifications)
+    //    }
 
     pub async fn get_by_id(db: &sqlx::PgPool, id: Uuid) -> Result<Specification, sqlx::Error> {
         let specification = sqlx::query_as!(
@@ -139,6 +170,26 @@ impl Specification {
             WHERE id = $1
             "#,
             id
+        )
+        .fetch_one(db)
+        .await?;
+
+        Ok(specification)
+    }
+
+    pub async fn get_by_name_and_branch_id(
+        db: &sqlx::PgPool,
+        name: &String,
+        branch_id: &Uuid,
+    ) -> Result<Specification, sqlx::Error> {
+        let specification = sqlx::query_as!(
+            Specification,
+            r#"
+            SELECT * FROM specifications
+            WHERE name = $1 AND branch_id = $2
+            "#,
+            name,
+            branch_id
         )
         .fetch_one(db)
         .await?;
