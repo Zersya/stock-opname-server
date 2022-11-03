@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { git="https://github.com/tokio-rs/axum.git", release = "axum-v0.6.0-rc.2" }
+axum = { git="https://github.com/tokio-rs/axum.git", release = "axum-v0.6.0-rc.2", features = [ "multipart" ] }
+#axum = "0.5.17"
+rust_decimal = "1.26.1"
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1.21.2", features = ["full"] }
 chrono = { version = "0.4.20", features = ["serde"] }
@@ -20,6 +22,7 @@ validator_derive = "0.16.0"
 itoa = "1.0.3"
 config = "0.13.2"
 dotenvy = "0.15.5"
+calamine = "0.19.1"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

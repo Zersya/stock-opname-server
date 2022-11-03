@@ -5,8 +5,10 @@ use validator_derive::Validate;
 #[derive(Deserialize, Validate)]
 pub struct RequestFormSpecification {
     pub name: String,
+    pub smallest_unit: i32,
+    pub unit_name: String,
     pub unit: String,
-    pub quantity: i32,
+    pub raw_price: i32,
 }
 
 #[derive(Deserialize, Validate)]

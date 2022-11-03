@@ -6,3 +6,4 @@ pub mod specification;
 pub mod product;
 pub mod specification_history;
 pub mod transaction;
+pub mod import;

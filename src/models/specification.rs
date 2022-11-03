@@ -9,8 +9,11 @@ pub struct Specification {
     pub id: Uuid,
     pub branch_id: Uuid,
     pub name: String,
-    pub quantity: i32,
+    pub smallest_unit: i32,
+    pub unit_name: String,
     pub unit: String,
+    pub lowest_price: f64,
+    pub raw_price: i32,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
     pub deleted_at: Option<NaiveDateTime>,
@@ -21,8 +24,11 @@ pub struct SpecificationWithProduct {
     pub id: Uuid,
     pub branch_id: Uuid,
     pub name: String,
-    pub quantity: i32,
+    pub smallest_unit: i32,
+    pub unit_name: String,
     pub unit: String,
+    pub lowest_price: f64,
+    pub raw_price: i32,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 
@@ -54,22 +60,59 @@ impl Specification {
         db: &sqlx::PgPool,
         branch_id: Uuid,
         name: String,
-        quantity: i32,
+        smallest_unit: i32,
+        unit_name: String,
         unit: String,
+        lowest_price: f64,
+        raw_price: i32,
     ) -> Result<Specification, sqlx::Error> {
         let specification = sqlx::query_as!(
             Specification,
             r#"
-            INSERT INTO specifications (branch_id, name, quantity, unit)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO specifications (branch_id, name, smallest_unit, unit_name, unit, lowest_price, raw_price)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
             "#,
             branch_id,
             name,
-            quantity,
-            unit
+            smallest_unit,
+            unit_name,
+            unit,
+            lowest_price,
+            raw_price
         )
         .fetch_one(db)
+        .await?;
+
+        Ok(specification)
+    }
+
+    pub async fn create_with_db_trx(
+        db_trx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        branch_id: Uuid,
+        name: String,
+        smallest_unit: i32,
+        unit_name: String,
+        unit: String,
+        lowest_price: f64,
+        raw_price: i32,
+    ) -> Result<Specification, sqlx::Error> {
+        let specification = sqlx::query_as!(
+            Specification,
+            r#"
+            INSERT INTO specifications (branch_id, name, smallest_unit, unit_name, unit, lowest_price, raw_price)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *
+            "#,
+            branch_id,
+            name,
+            smallest_unit,
+            unit_name,
+            unit,
+            lowest_price,
+            raw_price
+        )
+        .fetch_one(db_trx)
         .await?;
 
         Ok(specification)
@@ -131,8 +174,11 @@ impl Specification {
                 s.id,
                 s.branch_id,
                 s.name,
-                s.quantity,
+                s.smallest_unit,
+                s.unit_name,
                 s.unit,
+                s.lowest_price,
+                s.raw_price,
                 s.created_at,
                 s.updated_at,
                 coalesce(array_agg((p.id, p.name, ps.quantity, p.updated_at)) FILTER (WHERE p.id IS NOT NULL AND s.id = ps.specification_id

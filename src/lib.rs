@@ -10,6 +10,7 @@ mod databases;
 mod handlers;
 mod models;
 mod errors;
+mod logger;
 
 pub async fn axum() {
     dotenv().ok();
@@ -32,6 +33,7 @@ pub async fn axum() {
         .route("/branch", post(handlers::branch::create))
         .route("/branches/:id", get(handlers::branch::get_by_id))
         .route("/branches/:id", patch(handlers::branch::update))
+        .route("/branches/:id/import-product-specifications", post(handlers::import::product_specifications))
         .route("/branches/:id/transaction", post(handlers::transaction::create))
         .route("/branches/:id/sync", get(handlers::branch::sync))
         .route("/branches/:id/specification", post(handlers::specification::create))
