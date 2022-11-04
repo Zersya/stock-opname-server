@@ -15,6 +15,78 @@ use serde_json::Value;
 
 use sqlx::PgPool;
 
+pub async fn specifications(
+    db: &PgPool,
+    db_transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    row: (String, String, String, i32, String, i32),
+    branch_id: Uuid,
+) -> Result<(), Errors> {
+    let (_, name, unit, smallest_unit, unit_name, raw_price): (
+        String,
+        String,
+        String,
+        i32,
+        String,
+        i32,
+    ) = row;
+
+    let name = name.to_lowercase();
+    let unit_name = unit_name.to_lowercase();
+
+    let lowest_price = (Decimal::from(raw_price) / Decimal::from(smallest_unit))
+        .round_dp(2)
+        .to_f64()
+        .expect("failed to convert to f64");
+
+    let specification = Specification::get_by_name_and_branch_id(&db, &name, &branch_id).await;
+
+    if specification.is_ok() {
+        let spec = Specification::update_with_db_trx_by_name_and_branch_id(
+            db_transaction,
+            &branch_id,
+            &name,
+            &smallest_unit,
+            &unit_name,
+            &unit,
+            &lowest_price,
+            &raw_price,
+        )
+        .await;
+
+        if spec.is_err() {
+            return Err(Errors::new(&[(
+                "specification",
+                "failed to update specification",
+            )]));
+        }
+    } else {
+        match Specification::create_with_db_trx(
+            db_transaction,
+            branch_id,
+            name,
+            smallest_unit,
+            unit_name,
+            unit,
+            lowest_price,
+            raw_price,
+        )
+        .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                Logger::new(e.to_string()).log();
+
+                return Err(Errors::new(&[(
+                    "specification",
+                    "failed to create specification",
+                )]));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub async fn product_specifications(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
@@ -64,74 +136,25 @@ pub async fn product_specifications(
         }
     };
 
-    let mut iter = RangeDeserializerBuilder::new().from_range(&range).unwrap();
+    let mut iter = RangeDeserializerBuilder::new()
+        .from_range(&range)
+        .expect("failed to create iterator");
 
-    let mut db_transaction = db.begin().await.unwrap();
+    let mut db_transaction = db.begin().await.expect("Failed to begin transaction");
 
     while let Some(row) = iter.next() {
-        let (_, name, unit, smallest_unit, unit_name, raw_price): (
-            String,
-            String,
-            String,
-            i32,
-            String,
-            i32,
-        ) = row.unwrap();
-
-        let name = name.to_lowercase();
-        let unit_name = unit_name.to_lowercase();
-
-        let lowest_price = (Decimal::from(raw_price) / Decimal::from(smallest_unit))
-            .round_dp(2)
-            .to_f64()
-            .expect("failed to convert to f64");
-
-        let specification = Specification::get_by_name_and_branch_id(&db, &name, &branch_id).await;
-
-        if specification.is_ok() {
-            let spec = Specification::update_with_db_trx_by_name_and_branch_id(
-                &mut db_transaction,
-                &branch_id,
-                &name,
-                &smallest_unit,
-                &unit_name,
-                &unit,
-                &lowest_price,
-                &raw_price,
-            )
-            .await;
-
-            if spec.is_err() {
-                db_transaction.rollback().await.unwrap();
+        match specifications(&db, &mut db_transaction, row.unwrap(), branch_id).await {
+            Ok(_) => (),
+            Err(e) => {
+                Logger::new(format!("{:?}", e)).log();
+                db_transaction
+                    .rollback()
+                    .await
+                    .expect("Failed to rollback transaction");
                 return Err(Errors::new(&[(
                     "specification",
-                    "failed to update specification",
+                    "failed to import specification",
                 )]));
-            }
-        } else {
-            match Specification::create_with_db_trx(
-                &mut db_transaction,
-                branch_id,
-                name,
-                smallest_unit,
-                unit_name,
-                unit,
-                lowest_price,
-                raw_price,
-            )
-            .await
-            {
-                Ok(_) => (),
-                Err(e) => {
-                    Logger::new(e.to_string()).log();
-
-                    db_transaction.rollback().await.unwrap();
-
-                    return Err(Errors::new(&[(
-                        "specification",
-                        "failed to create specification",
-                    )]));
-                }
             }
         }
     }
