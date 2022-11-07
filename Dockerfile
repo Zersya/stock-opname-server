@@ -8,7 +8,7 @@ RUN cargo build --release --bin stock-opname-server
 
 FROM debian:buster-slim as runtime
 
-RUN apt-get update && apt-get install -y libssl1.1 libpq-dev
+RUN apt-get update && apt-get install -y libssl1.1 libpq-dev ca-certificates
 
 ENV LD_LIBRARY_PATH /usr/local/pgsql/lib
 
