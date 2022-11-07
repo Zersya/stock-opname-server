@@ -7,6 +7,8 @@ use uuid::Uuid;
 
 use crate::logger::Logger;
 use crate::models::branch::Branch;
+use crate::models::product::Product;
+use crate::models::product_specification::ProductSpecification;
 use crate::models::specification::Specification;
 use crate::{errors::Errors, models::responses::DefaultResponse};
 
@@ -14,6 +16,156 @@ use axum::{extract::Multipart, extract::Path, extract::State, response::Json};
 use serde_json::Value;
 
 use sqlx::PgPool;
+
+async fn process_specifications(
+    db: &PgPool,
+    db_transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    row: (String, String, String, i32, String, i32),
+    branch_id: Uuid,
+) -> Result<(), Errors> {
+    let (_, name, unit, smallest_unit, unit_name, raw_price): (
+        String,
+        String,
+        String,
+        i32,
+        String,
+        i32,
+    ) = row;
+
+    let name = name.to_lowercase();
+    let unit_name = unit_name.to_lowercase();
+
+    let lowest_price = (Decimal::from(raw_price) / Decimal::from(smallest_unit))
+        .round_dp(2)
+        .to_f64()
+        .expect("failed to convert to f64");
+
+    let specification = Specification::get_by_name_and_branch_id(&db, &name, &branch_id).await;
+
+    if specification.is_ok() {
+        let spec = Specification::update_with_db_trx_by_name_and_branch_id(
+            db_transaction,
+            &branch_id,
+            &name,
+            &smallest_unit,
+            &unit_name,
+            &unit,
+            &lowest_price,
+            &raw_price,
+        )
+        .await;
+
+        if spec.is_err() {
+            return Err(Errors::new(&[(
+                "specification",
+                "failed to update specification",
+            )]));
+        }
+    } else {
+        match Specification::create_with_db_trx(
+            db_transaction,
+            branch_id,
+            name,
+            smallest_unit,
+            unit_name,
+            unit,
+            lowest_price,
+            raw_price,
+        )
+        .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                Logger::new(e.to_string()).log();
+
+                return Err(Errors::new(&[(
+                    "specification",
+                    "failed to create specification",
+                )]));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn process_product_specifications(
+    db: &PgPool,
+    db_transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    product_name: &String,
+    specification_name: String,
+    measure: i32,
+
+    branch_id: Uuid,
+) -> Result<(), Errors> {
+    let product_name = product_name.to_lowercase();
+    let specification_name = specification_name.to_lowercase();
+
+    let specification =
+        Specification::get_by_name_and_branch_id(&db, &specification_name, &branch_id).await;
+
+    if specification.is_err() {
+        return Ok(());
+    }
+
+    let products =
+        match Product::get_by_contain_name_and_branch_id(&db, &product_name, &branch_id).await {
+            Ok(products) => products,
+            Err(e) => {
+                Logger::new(e.to_string()).log();
+
+                return Err(Errors::new(&[("product", "failed to get product")]));
+            }
+        };
+
+    if products.is_empty() {
+        return Ok(());
+    }
+
+    for product in products {
+        let product_specification = ProductSpecification::get_by_product_id_and_specification_id(
+            &db,
+            product.id,
+            specification.as_ref().unwrap().id,
+        )
+        .await;
+
+        if product_specification.is_ok() {
+            let product_specification = ProductSpecification::update_with_db_trx(
+                db_transaction,
+                product_specification.unwrap().id,
+                product.id,
+                specification.as_ref().unwrap().id,
+                measure,
+            )
+            .await;
+
+            if product_specification.is_err() {
+                return Err(Errors::new(&[(
+                    "product_specification",
+                    "failed to update product specification",
+                )]));
+            }
+        } else {
+            let product_specification = ProductSpecification::create_with_db_trx(
+                db_transaction,
+                product.id,
+                specification.as_ref().unwrap().id,
+                measure,
+            )
+            .await;
+
+            if product_specification.is_err() {
+                return Err(Errors::new(&[(
+                    "product_specification",
+                    "failed to create product specification",
+                )]));
+            }
+        }
+    }
+
+    Ok(())
+}
 
 pub async fn product_specifications(
     State(db): State<PgPool>,
@@ -45,102 +197,125 @@ pub async fn product_specifications(
     file.write_all(&data).unwrap();
 
     let mut workbook: Xlsx<_> = open_workbook(path).unwrap();
-    let range = match workbook
+    let range_specifications = match workbook
         .worksheet_range("Specifications")
         .ok_or(Error::Msg("Cannot find 'Specifications'"))
     {
-        Ok(range) => range,
+        Ok(range) => match range {
+            Ok(range) => range,
+            Err(e) => {
+                Logger::new(e.to_string()).log();
+                return Err(Errors::new(&[("file", "file is not valid")]));
+            }
+        },
         Err(e) => {
             Logger::new(e.to_string()).log();
             return Err(Errors::new(&[("worksheet", "cannot find worksheet")]));
         }
     };
 
-    let range = match range {
-        Ok(range) => range,
-        Err(e) => {
-            Logger::new(e.to_string()).log();
-            return Err(Errors::new(&[("file", "file is not valid")]));
-        }
-    };
+    let mut iter = RangeDeserializerBuilder::new()
+        .from_range(&range_specifications)
+        .expect("failed to create iterator for specifications");
 
-    let mut iter = RangeDeserializerBuilder::new().from_range(&range).unwrap();
-
-    let mut db_transaction = db.begin().await.unwrap();
+    let mut db_transaction = db.begin().await.expect("Failed to begin transaction");
 
     while let Some(row) = iter.next() {
-        let (_, name, unit, smallest_unit, unit_name, raw_price): (
-            String,
-            String,
-            String,
-            i32,
-            String,
-            i32,
-        ) = row.unwrap();
-
-        let lowest_price = (Decimal::from(raw_price) / Decimal::from(smallest_unit))
-            .round_dp(2)
-            .to_f64()
-            .expect("failed to convert to f64");
-
-        match Specification::create_with_db_trx(
-            &mut db_transaction,
-            branch_id,
-            name.to_lowercase(),
-            smallest_unit,
-            unit_name.to_lowercase(),
-            unit,
-            lowest_price,
-            raw_price,
-        )
-        .await
-        {
+        match process_specifications(&db, &mut db_transaction, row.unwrap(), branch_id).await {
             Ok(_) => (),
             Err(e) => {
-                Logger::new(e.to_string()).log();
-
-                db_transaction.rollback().await.unwrap();
-
+                Logger::new(format!("{:?}", e)).log();
+                db_transaction
+                    .rollback()
+                    .await
+                    .expect("Failed to rollback transaction");
                 return Err(Errors::new(&[(
                     "specification",
-                    "failed to create specification",
+                    "failed to import specification",
                 )]));
             }
         }
     }
 
-    let commit = db_transaction.commit().await;
+    match db_transaction.commit().await {
+        Ok(_) => (),
+        Err(e) => {
+            Logger::new(e.to_string()).log();
+            return Err(Errors::new(&[(
+                "specification",
+                "failed to commit transaction",
+            )]));
+        }
+    };
 
-    if commit.is_err() {
-        return Err(Errors::new(&[(
-            "commit_db_transaction",
-            "failed to commit db_transaction",
-        )]));
+    let mut db_transaction = db.begin().await.expect("Failed to begin transaction");
+
+    let range_product_specifications = match workbook
+        .worksheet_range("Product Specifications")
+        .ok_or(Error::Msg("Cannot find 'Product Specifications'"))
+    {
+        Ok(range) => match range {
+            Ok(range) => range,
+            Err(e) => {
+                Logger::new(e.to_string()).log();
+                return Err(Errors::new(&[("file", "file is not valid")]));
+            }
+        },
+        Err(e) => {
+            Logger::new(e.to_string()).log();
+            return Err(Errors::new(&[("worksheet", "cannot find worksheet")]));
+        }
+    };
+
+    let mut iter = RangeDeserializerBuilder::new()
+        .from_range(&range_product_specifications)
+        .expect("failed to create iterator for product specifications");
+
+    let mut active_product_name = String::new();
+
+    while let Some(row) = iter.next() {
+        let (product_name, specification_name, measure, _): (String, String, i32, String) =
+            row.unwrap();
+
+        if !product_name.is_empty() {
+            active_product_name = product_name;
+        }
+
+        match process_product_specifications(
+            &db,
+            &mut db_transaction,
+            &active_product_name,
+            specification_name,
+            measure,
+            branch_id,
+        )
+        .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                Logger::new(format!("{:?}", e)).log();
+                db_transaction
+                    .rollback()
+                    .await
+                    .expect("Failed to rollback transaction");
+                return Err(Errors::new(&[(
+                    "specification",
+                    "failed to import product specification",
+                )]));
+            }
+        }
     }
 
-    // if let Some(result) = iter.next() {
-    //     let (no, name, unit, minimum_unit, unit_name, lowest_price, price): (
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //         String,
-    //     ) = match result {
-    //         Ok((no, name, unit, minimum_unit, unit_name, lowest_price, price)) => {
-    //             (no, name, unit, minimum_unit, unit_name, lowest_price, price)
-    //         }
-    //         Err(e) => {
-    //             Logger::new(e.to_string()).log();
-
-    //             return Err(Errors::new(&[("file", "invalid file")]));
-    //         }
-    //     };
-
-    // } else {
-    //     return Err(Errors::new(&[("result", "error")]));
-    // }
+    match db_transaction.commit().await {
+        Ok(_) => (),
+        Err(e) => {
+            Logger::new(e.to_string()).log();
+            return Err(Errors::new(&[(
+                "specification",
+                "failed to commit transaction",
+            )]));
+        }
+    };
 
     let body = DefaultResponse::new("ok", "success to import product specifications".to_string());
     Ok(body.into_response())
