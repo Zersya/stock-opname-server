@@ -19,6 +19,8 @@ RUN chown -R stock-opname:stock-opname /usr/local/bin/stock-opname-server
 
 USER stock-opname
 
+RUN mkdir -p /var/www/storage/temp && mkdir -p /var/www/storage/logs
+
 CMD ["/usr/local/bin/stock-opname-server"]
 
 EXPOSE 9001
