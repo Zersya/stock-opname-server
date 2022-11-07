@@ -152,27 +152,15 @@ impl Product {
                 p.id,
                 p.branch_id,
                 p.name,
-                sum(sh.unit_price * ps.quantity) as cost_of_product,
+                sum(s.lowest_price * ps.quantity) as cost_of_product,
                 p.reference_id,
                 p.created_at,
                 p.updated_at,
-                coalesce(array_agg((s.id, s.name, ps.quantity, s.unit, sh.unit_price, (sh.unit_price * ps.quantity))) FILTER (WHERE s.id IS NOT NULL AND s.deleted_at IS NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
+                coalesce(array_agg((s.id, s.name, ps.quantity, s.unit, s.lowest_price, (s.lowest_price * ps.quantity))) FILTER (WHERE s.id IS NOT NULL AND s.deleted_at IS NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
             FROM
                 products p
                 LEFT JOIN product_specifications ps ON ps.product_id = p.id
                 LEFT JOIN specifications s ON s.id = ps.specification_id
-                LEFT JOIN LATERAL (
-                    SELECT
-                        sh.unit_price,
-                        sh.specification_id,
-                        sh.created_at
-                    FROM
-                        specification_histories sh
-                    WHERE
-                        sh.specification_id = s.id
-                    ORDER BY
-                        sh.created_at DESC
-                    LIMIT 1) sh ON sh.specification_id = s.id
             WHERE p.reference_id = $1 AND p.deleted_at IS NULL
             GROUP BY
                 p.id
