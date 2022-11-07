@@ -43,8 +43,6 @@ pub struct SimplifySpecification {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub specification_quantity: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub product_specification_quantity: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unit: Option<String>,
