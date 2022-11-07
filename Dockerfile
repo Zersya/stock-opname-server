@@ -14,6 +14,11 @@ ENV LD_LIBRARY_PATH /usr/local/pgsql/lib
 
 COPY --from=builder /var/www/target/release/stock-opname-server /usr/local/bin/stock-opname-server
 
+RUN groupadd -r stock-opname && useradd -r -g stock-opname stock-opname
+RUN chown -R stock-opname:stock-opname /usr/local/bin/stock-opname-server
+
+USER stock-opname
+
 CMD ["/usr/local/bin/stock-opname-server"]
 
 EXPOSE 9001
