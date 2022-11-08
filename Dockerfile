@@ -17,9 +17,9 @@ COPY --from=builder /var/www/target/release/stock-opname-server /usr/local/bin/s
 RUN groupadd -r stock-opname && useradd -r -g stock-opname stock-opname
 RUN chown -R stock-opname:stock-opname /usr/local/bin/stock-opname-server
 
-USER stock-opname
+RUN mkdir -p /var/www/storage/temp && mkdir -p /var/www/storage/logs && chown -R stock-opname:stock-opname /var/www/storage
 
-RUN mkdir -p /var/www/storage/temp && mkdir -p /var/www/storage/logs
+USER stock-opname
 
 CMD ["/usr/local/bin/stock-opname-server"]
 
