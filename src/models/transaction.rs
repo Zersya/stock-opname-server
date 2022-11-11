@@ -5,6 +5,7 @@ use uuid::Uuid;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Transaction {
     pub id: Uuid,
+    pub branch_id: Uuid,
     pub created_by: Option<Uuid>,
     pub note: Option<String>,
     pub created_at: NaiveDateTime,
@@ -48,16 +49,18 @@ pub struct SimplifyTransactionItem {
 impl Transaction {
     pub async fn create(
         db_trx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        branch_id: &Uuid,
         created_by: Option<Uuid>,
         note: Option<String>,
     ) -> Result<Transaction, sqlx::Error> {
         let transaction = sqlx::query_as!(
             Transaction,
             r#"
-            INSERT INTO transactions (created_by, note)
-            VALUES ($1, $2)
+            INSERT INTO transactions (branch_id, created_by, note)
+            VALUES ($1, $2, $3)
             RETURNING *
             "#,
+            branch_id,
             created_by,
             note
         )

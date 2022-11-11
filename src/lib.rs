@@ -23,7 +23,7 @@ pub async fn axum() {
         .await
         .expect("Failed to create pool database connection");
 
-    sqlx::migrate!().run(&pool).await.expect("Failed to migrate the database");
+    // sqlx::migrate!().run(&pool).await.expect("Failed to migrate the database");
 
     let app = Router::with_state(pool)
         .route("/", get(handlers::user::hello_world))
