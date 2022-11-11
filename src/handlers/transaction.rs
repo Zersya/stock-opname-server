@@ -39,6 +39,7 @@ pub async fn create(
     let transaction_id = match process_create(
         &db,
         &mut db_transaction,
+        &branch_id,
         payload.created_by,
         &payload.note,
         &payload.items,
@@ -91,6 +92,7 @@ pub async fn bulk_create(
         let transaction_id = match process_create(
             &db,
             &mut db_transaction,
+            &branch_id,
             transaction.created_by,
             &transaction.note,
             &transaction.items,
@@ -130,21 +132,23 @@ pub async fn bulk_create(
 pub async fn process_create(
     db: &PgPool,
     db_transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    branch_id: &Uuid,
     created_by: Option<Uuid>,
     note: &Option<String>,
     items: &Vec<RequestCreateTransactionItem>,
 ) -> Result<String, Errors> {
-    let transaction = match Transaction::create(db_transaction, created_by, note.to_owned()).await {
-        Ok(transaction) => transaction,
-        Err(err) => {
-            Logger::new(format!("{:?}", err)).log();
+    let transaction =
+        match Transaction::create(db_transaction, branch_id, created_by, note.to_owned()).await {
+            Ok(transaction) => transaction,
+            Err(err) => {
+                Logger::new(format!("{:?}", err)).log();
 
-            return Err(Errors::new(&[(
-                "transaction",
-                "failed to create transaction",
-            )]));
-        }
-    };
+                return Err(Errors::new(&[(
+                    "transaction",
+                    "failed to create transaction",
+                )]));
+            }
+        };
 
     for item in items {
         let result =
