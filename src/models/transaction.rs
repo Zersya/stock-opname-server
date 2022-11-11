@@ -98,31 +98,31 @@ impl TransactionItem {
 }
 
 impl SimplifyTransaction {
-    pub async fn get_by_id_with_items(db: &sqlx::PgPool, id: Uuid) -> Result<Self, sqlx::Error> {
-        let transaction = sqlx::query_as!(
-            SimplifyTransaction,
-            r#"
-                SELECT
-                    t.id,
-                    t.created_by,
-                    t.note,
-                    coalesce(array_agg((ti.id, ti.product_id, ti.product_name, ti.product_reference_id, ti.product_quantity, ti.created_at)) FILTER (WHERE ti.id IS NOT NULL AND ti.deleted_at IS NULL), '{}') AS "items: Vec<SimplifyTransactionItem>",
-                    t.created_at
-                FROM
-                    transactions t
-                    LEFT JOIN transaction_items ti ON ti.transaction_id = t.id
-                WHERE
-                    t.id = $1
-                GROUP BY
-                    t.id
-            "#,
-            id
-        )
-        .fetch_one(db)
-        .await?;
+    // pub async fn get_by_id_with_items(db: &sqlx::PgPool, id: Uuid) -> Result<Self, sqlx::Error> {
+    //     let transaction = sqlx::query_as!(
+    //         SimplifyTransaction,
+    //         r#"
+    //             SELECT
+    //                 t.id,
+    //                 t.created_by,
+    //                 t.note,
+    //                 coalesce(array_agg((ti.id, ti.product_id, ti.product_name, ti.product_reference_id, ti.product_quantity, ti.created_at)) FILTER (WHERE ti.id IS NOT NULL AND ti.deleted_at IS NULL), '{}') AS "items: Vec<SimplifyTransactionItem>",
+    //                 t.created_at
+    //             FROM
+    //                 transactions t
+    //                 LEFT JOIN transaction_items ti ON ti.transaction_id = t.id
+    //             WHERE
+    //                 t.id = $1
+    //             GROUP BY
+    //                 t.id
+    //         "#,
+    //         id
+    //     )
+    //     .fetch_one(db)
+    //     .await?;
 
-        Ok(transaction)
-    }
+    //     Ok(transaction)
+    // }
 
 //    pub async fn get_all_with_items(db: &sqlx::PgPool) -> Result<Vec<Self>, sqlx::Error> {
 //        let transactions = sqlx::query_as!(
