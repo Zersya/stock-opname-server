@@ -34,6 +34,7 @@ pub async fn axum() {
         .route("/branches/:id", get(handlers::branch::get_by_id))
         .route("/branches/:id", patch(handlers::branch::update))
         .route("/branches/:id/import-product-specifications", post(handlers::import::product_specifications))
+        .route("/branches/:id/bulk-transaction", post(handlers::transaction::bulk_create))
         .route("/branches/:id/transaction", post(handlers::transaction::create))
         .route("/branches/:id/sync", get(handlers::branch::sync))
         .route("/branches/:id/specification", post(handlers::specification::create))
