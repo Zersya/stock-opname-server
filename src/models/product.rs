@@ -91,7 +91,7 @@ impl Product {
                 p.reference_id,
                 p.created_at,
                 p.updated_at,
-                coalesce(array_agg((s.id, s.name, ps.quantity, s.unit_name, s.lowest_price, (s.lowest_price * ps.quantity))) FILTER (WHERE s.id IS NOT NULL AND s.deleted_at IS NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
+                coalesce(array_agg(DISTINCT (s.id, s.name, ps.quantity, s.unit_name, s.lowest_price, (s.lowest_price * ps.quantity))) FILTER (WHERE s.id IS NOT NULL AND s.deleted_at IS NULL), '{}') AS "specifications: Vec<SimplifySpecification>"
             FROM
                 products p
                 LEFT JOIN product_specifications ps ON ps.product_id = p.id

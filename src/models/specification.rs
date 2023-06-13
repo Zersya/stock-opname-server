@@ -230,16 +230,16 @@ impl Specification {
                 s.raw_price,
                 s.created_at,
                 s.updated_at,
-                coalesce(array_agg((p.id, p.name, ps.quantity, p.updated_at)) FILTER (WHERE p.id IS NOT NULL AND s.id = ps.specification_id
+                coalesce(array_agg(DISTINCT (p.id, p.name, ps.quantity, p.updated_at)) FILTER (WHERE p.id IS NOT NULL
                     AND p.deleted_at IS NULL), '{}') AS "products: Vec<SimplifyProduct>",
                 coalesce(array_agg((sh.id, sh.flow_type, sh.note, sh.quantity, sh.price, sh.unit_price, sh.created_at)
                 ORDER BY
-                    sh.created_at DESC) FILTER (WHERE sh.id IS NOT NULL 
+                    sh.created_at DESC) FILTER (WHERE sh.id IS NOT NULL
                     AND sh.created_at >= now() - interval '7 day'), '{}') AS "specification_histories: Vec<SimplifySpecificationHistory>"
             FROM
                 specifications s
                 LEFT JOIN product_specifications ps ON ps.specification_id = s.id
-                LEFT JOIN products p ON p.id = ps.product_id AND s.id = ps.specification_id
+                INNER JOIN products p ON p.id = ps.product_id AND s.id = ps.specification_id
                 LEFT JOIN specification_histories sh ON sh.specification_id = s.id
             WHERE
                 s.branch_id = $1
