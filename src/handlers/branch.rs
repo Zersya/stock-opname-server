@@ -70,6 +70,15 @@ pub async fn create(
     Ok(body.into_response())
 }
 
+pub async fn get_all(State(db): State<PgPool>) -> Result<Json<Value>, Errors> {
+    let branches = Branch::get_all(&db).await.unwrap();
+
+    let body = DefaultResponse::new("ok", "get branches successfully".to_string())
+        .with_data(json!(branches));
+
+    Ok(body.into_response())
+}
+
 pub async fn update(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
