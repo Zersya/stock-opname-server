@@ -1,4 +1,5 @@
 use crate::errors::{Errors, FieldValidator};
+use crate::logger::Logger;
 use crate::models::product::Product;
 use crate::models::product_specification::ProductSpecification;
 use crate::models::requests::product::RequestCreateProductSpecification;

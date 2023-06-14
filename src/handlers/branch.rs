@@ -6,6 +6,7 @@ use crate::models::product::Product;
 use crate::models::requests::branch::RequestFormBranch;
 use crate::models::responses::DefaultResponse;
 
+use axum::Extension;
 use axum::extract::Path;
 use axum::{extract::State, response::Json};
 use serde_json::{json, Value};
@@ -14,6 +15,7 @@ use uuid::Uuid;
 
 pub async fn create(
     State(db): State<PgPool>,
+    Extension(user_id): Extension<Uuid>,
     Json(payload): Json<RequestFormBranch>,
 ) -> Result<Json<Value>, Errors> {
     let branch = Branch::get_by_reference_id(&db, payload.reference_id).await;
@@ -39,7 +41,7 @@ pub async fn create(
     let name = extractor.extract("name", Some(payload.name));
     extractor.check()?;
 
-    let branch = Branch::create(&db, payload.user_id, name, payload.reference_id)
+    let branch = Branch::create(&db, user_id, name, payload.reference_id)
         .await
         .unwrap();
 
