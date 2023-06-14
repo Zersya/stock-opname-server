@@ -1,4 +1,5 @@
 use crate::errors::{Errors, FieldValidator};
+use crate::logger::Logger;
 use crate::models::product::Product;
 use crate::models::product_specification::ProductSpecification;
 use crate::models::requests::product::RequestCreateProductSpecification;
@@ -28,7 +29,7 @@ pub async fn get_all(
     let body = DefaultResponse::new("ok", "get all product successfully".to_string())
         .with_data(json!(products));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn set_product_specification(
@@ -79,7 +80,7 @@ pub async fn set_product_specification(
         )
         .with_data(json!(result));
 
-        return Ok(body.into_response());
+        return Ok(body.into_json());
     }
 
     let result =
@@ -93,5 +94,5 @@ pub async fn set_product_specification(
     )
     .with_data(json!(result));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }

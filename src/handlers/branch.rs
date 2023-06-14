@@ -6,6 +6,7 @@ use crate::models::product::Product;
 use crate::models::requests::branch::RequestFormBranch;
 use crate::models::responses::DefaultResponse;
 
+use axum::Extension;
 use axum::extract::Path;
 use axum::{extract::State, response::Json};
 use serde_json::{json, Value};
@@ -14,6 +15,7 @@ use uuid::Uuid;
 
 pub async fn create(
     State(db): State<PgPool>,
+    Extension(user_id): Extension<Uuid>,
     Json(payload): Json<RequestFormBranch>,
 ) -> Result<Json<Value>, Errors> {
     let branch = Branch::get_by_reference_id(&db, payload.reference_id).await;
@@ -39,7 +41,7 @@ pub async fn create(
     let name = extractor.extract("name", Some(payload.name));
     extractor.check()?;
 
-    let branch = Branch::create(&db, payload.user_id, name, payload.reference_id)
+    let branch = Branch::create(&db, user_id, name, payload.reference_id)
         .await
         .unwrap();
 
@@ -67,7 +69,7 @@ pub async fn create(
         }
     });
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn get_all(State(db): State<PgPool>) -> Result<Json<Value>, Errors> {
@@ -76,7 +78,7 @@ pub async fn get_all(State(db): State<PgPool>) -> Result<Json<Value>, Errors> {
     let body = DefaultResponse::new("ok", "get branches successfully".to_string())
         .with_data(json!(branches));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn update(
@@ -102,7 +104,7 @@ pub async fn update(
     let body = DefaultResponse::new("ok", "update branch successfully".to_string())
         .with_data(json!(branch));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn get_by_id(
@@ -118,7 +120,7 @@ pub async fn get_by_id(
     let body = DefaultResponse::new("ok", "get branch successfully".to_string())
         .with_data(json!(branch.unwrap()));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn sync(
@@ -189,5 +191,5 @@ pub async fn sync(
         }
     });
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }

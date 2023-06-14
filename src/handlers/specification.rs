@@ -53,7 +53,7 @@ pub async fn create(
     let body = DefaultResponse::new("ok", "create specification successfully".to_string())
         .with_data(json!(specification));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn get_by_branch_id(
@@ -73,7 +73,7 @@ pub async fn get_by_branch_id(
     let body = DefaultResponse::new("ok", "get all specifications successfully".to_string())
         .with_data(json!(specifications));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn delete(
@@ -106,5 +106,5 @@ pub async fn delete(
 
     let body = DefaultResponse::new("ok", "delete specification successfully".to_string());
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }

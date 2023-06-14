@@ -8,6 +8,9 @@ pub struct DefaultResponse {
     pub message: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub access_token: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -17,6 +20,13 @@ pub struct DefaultResponse {
     pub meta: Option<serde_json::Value>
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Message {
+    pub value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debug: Option<String>,
+}
+
 
 impl DefaultResponse {
     pub fn new(status: &str, message: String) -> Self {
@@ -24,6 +34,7 @@ impl DefaultResponse {
         Self {
             status,
             message,
+            access_token: None,
             data: None,
             errors: None,
             meta: None
@@ -40,12 +51,32 @@ impl DefaultResponse {
         self
     }
 
-//    pub fn with_meta(mut self, meta: serde_json::Value) -> Self {
-//        self.meta = Some(meta);
-//        self
-//    }
+    pub fn unauthorized(message: &str, debug: Option<String>) -> Self {
+        Self::new(
+            "unauthorized",
+            message.to_string(),
+        )
+    }
 
-    pub fn into_response(self) -> Json<Value> {
+
+    pub fn error(message: &str, debug: String) -> Self {
+        Self::new(
+            "error",
+            message.to_string(),
+        )
+    }
+
+    pub fn with_access_token(mut self, access_token: String) -> Self {
+        self.access_token = Some(access_token);
+        self
+    }
+
+    //    pub fn with_meta(mut self, meta: serde_json::Value) -> Self {
+    //        self.meta = Some(meta);
+    //        self
+    //    }
+
+    pub fn into_json(self) -> Json<Value> {
         Json(json!(self))
     }
 }

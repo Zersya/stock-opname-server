@@ -51,5 +51,5 @@ pub async fn register(
     let body =
         DefaultResponse::new("ok", "register successfully".to_string()).with_data(json!(user));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
