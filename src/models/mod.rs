@@ -7,3 +7,4 @@ pub mod specification;
 pub mod specification_history;
 pub mod product_specification;
 pub mod transaction;
+pub mod oauth_access_token;

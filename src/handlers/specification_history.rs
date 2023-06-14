@@ -73,5 +73,5 @@ pub async fn create(
     let body = DefaultResponse::new("ok", "create specification successfully".to_string())
         .with_data(json!(specification));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }

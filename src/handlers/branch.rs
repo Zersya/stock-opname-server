@@ -67,7 +67,7 @@ pub async fn create(
         }
     });
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn get_all(State(db): State<PgPool>) -> Result<Json<Value>, Errors> {
@@ -76,7 +76,7 @@ pub async fn get_all(State(db): State<PgPool>) -> Result<Json<Value>, Errors> {
     let body = DefaultResponse::new("ok", "get branches successfully".to_string())
         .with_data(json!(branches));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn update(
@@ -102,7 +102,7 @@ pub async fn update(
     let body = DefaultResponse::new("ok", "update branch successfully".to_string())
         .with_data(json!(branch));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn get_by_id(
@@ -118,7 +118,7 @@ pub async fn get_by_id(
     let body = DefaultResponse::new("ok", "get branch successfully".to_string())
         .with_data(json!(branch.unwrap()));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn sync(
@@ -189,5 +189,5 @@ pub async fn sync(
         }
     });
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }

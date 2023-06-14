@@ -64,7 +64,7 @@ pub async fn create(
     let body = DefaultResponse::new("ok", "create transaction successfully".to_string())
         .with_data(json!(transaction_id));
 
-    Ok(body.into_response())
+    Ok(body.into_json())
 }
 
 pub async fn bulk_create(
@@ -122,7 +122,7 @@ pub async fn bulk_create(
             let body = DefaultResponse::new("ok", "create transaction successfully".to_string())
                 .with_data(json!(transaction_ids));
 
-            Ok(body.into_response())
+            Ok(body.into_json())
         }
         Err(_) => Err(Errors::new(&[(
             "commit_db_transaction",
