@@ -37,7 +37,8 @@ pub async fn axum() {
 
     let origins = [
         "http://localhost:3000".parse::<HeaderValue>().unwrap(),
-        "http://*.maresto.id".parse::<HeaderValue>().unwrap(),
+        "https://new-web.maresto.id".parse::<HeaderValue>().unwrap(),
+        "https://maresto-menu-web.vercel.app".parse::<HeaderValue>().unwrap(),
     ];
 
     let app = Router::with_state(pool)
