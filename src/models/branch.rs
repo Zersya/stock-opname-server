@@ -65,23 +65,23 @@ impl Branch {
         Ok(branch)
     }
 
-    //    pub async fn get_by_user_id(
-    //        db: &sqlx::PgPool,
-    //        user_id: Uuid,
-    //    ) -> Result<Vec<Branch>, sqlx::Error> {
-    //        let branches = sqlx::query_as!(
-    //            Branch,
-    //            r#"
-    //            SELECT * FROM branches
-    //            WHERE user_id = $1
-    //            "#,
-    //            user_id
-    //        )
-    //        .fetch_all(db)
-    //        .await?;
-    //
-    //        Ok(branches)
-    //    }
+    pub async fn get_by_user_id(
+        db: &sqlx::PgPool,
+        user_id: Uuid,
+    ) -> Result<Vec<Branch>, sqlx::Error> {
+        let branches = sqlx::query_as!(
+            Branch,
+            r#"
+               SELECT * FROM branches
+               WHERE user_id = $1
+               "#,
+            user_id
+        )
+        .fetch_all(db)
+        .await?;
+
+        Ok(branches)
+    }
 
     pub async fn get_by_reference_id(
         db: &sqlx::PgPool,

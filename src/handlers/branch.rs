@@ -6,8 +6,8 @@ use crate::models::product::Product;
 use crate::models::requests::branch::RequestFormBranch;
 use crate::models::responses::DefaultResponse;
 
-use axum::Extension;
 use axum::extract::Path;
+use axum::Extension;
 use axum::{extract::State, response::Json};
 use serde_json::{json, Value};
 use sqlx::PgPool;
@@ -116,6 +116,18 @@ pub async fn get_by_id(
     if branch.is_err() {
         return Err(Errors::new(&[("branch_id", "not found")]));
     }
+
+    let body = DefaultResponse::new("ok", "get branch successfully".to_string())
+        .with_data(json!(branch.unwrap()));
+
+    Ok(body.into_json())
+}
+
+pub async fn get_by_user_id(
+    State(db): State<PgPool>,
+    Extension(user_id): Extension<Uuid>,
+) -> Result<Json<Value>, Errors> {
+    let branch = Branch::get_by_user_id(&db, user_id).await;
 
     let body = DefaultResponse::new("ok", "get branch successfully".to_string())
         .with_data(json!(branch.unwrap()));
