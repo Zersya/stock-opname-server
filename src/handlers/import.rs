@@ -317,6 +317,6 @@ pub async fn product_specifications(
         }
     };
 
-    let body = DefaultResponse::new("ok", "success to import product specifications".to_string());
+    let body = DefaultResponse::ok("success to import product specifications");
     Ok(body.into_json())
 }

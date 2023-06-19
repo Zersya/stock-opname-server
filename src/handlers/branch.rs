@@ -45,7 +45,7 @@ pub async fn create(
         .await
         .unwrap();
 
-    let body = DefaultResponse::new("ok", "create branch successfully".to_string())
+    let body = DefaultResponse::created("create branch successfully")
         .with_data(json!(branch));
 
     tokio::spawn(async move {
@@ -75,7 +75,7 @@ pub async fn create(
 pub async fn get_all(State(db): State<PgPool>) -> Result<Json<Value>, Errors> {
     let branches = Branch::get_all(&db).await.unwrap();
 
-    let body = DefaultResponse::new("ok", "get branches successfully".to_string())
+    let body = DefaultResponse::ok("get branches successfully")
         .with_data(json!(branches));
 
     Ok(body.into_json())
@@ -101,7 +101,7 @@ pub async fn update(
         .await
         .unwrap();
 
-    let body = DefaultResponse::new("ok", "update branch successfully".to_string())
+    let body = DefaultResponse::ok("update branch successfully")
         .with_data(json!(branch));
 
     Ok(body.into_json())
@@ -117,7 +117,7 @@ pub async fn get_by_id(
         return Err(Errors::new(&[("branch_id", "not found")]));
     }
 
-    let body = DefaultResponse::new("ok", "get branch successfully".to_string())
+    let body = DefaultResponse::ok("get branch successfully")
         .with_data(json!(branch.unwrap()));
 
     Ok(body.into_json())
@@ -129,7 +129,7 @@ pub async fn get_by_user_id(
 ) -> Result<Json<Value>, Errors> {
     let branch = Branch::get_by_user_id(&db, user_id).await;
 
-    let body = DefaultResponse::new("ok", "get branch successfully".to_string())
+    let body = DefaultResponse::ok("get branch successfully")
         .with_data(json!(branch.unwrap()));
 
     Ok(body.into_json())
@@ -170,7 +170,7 @@ pub async fn sync(
     .await
     .unwrap();
 
-    let body = DefaultResponse::new("ok", "update branch successfully".to_string())
+    let body = DefaultResponse::ok("update branch successfully")
         .with_data(json!(branch));
 
     tokio::spawn(async move {

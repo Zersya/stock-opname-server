@@ -61,7 +61,7 @@ pub async fn create(
         )]));
     }
 
-    let body = DefaultResponse::new("ok", "create transaction successfully".to_string())
+    let body = DefaultResponse::created("create transaction successfully")
         .with_data(json!(transaction_id));
 
     Ok(body.into_json())
@@ -119,7 +119,7 @@ pub async fn bulk_create(
 
     match db_transaction.commit().await {
         Ok(_) => {
-            let body = DefaultResponse::new("ok", "create transaction successfully".to_string())
+            let body = DefaultResponse::created("create transaction successfully")
                 .with_data(json!(transaction_ids));
 
             Ok(body.into_json())

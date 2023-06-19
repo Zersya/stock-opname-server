@@ -58,7 +58,7 @@ pub async fn login(State(db): State<PgPool>, Json(payload): Json<RequestLogin>) 
         Err(err) => return (StatusCode::UNPROCESSABLE_ENTITY, err.into_response()).into_response(),
     };
 
-    let body = DefaultResponse::new("ok", "login successfully".to_string())
+    let body = DefaultResponse::ok("login successfully")
         .with_access_token(token.access_token)
         .with_data(json!(user)).into_json();
 

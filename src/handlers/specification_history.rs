@@ -70,7 +70,7 @@ pub async fn create(
         )]));
     }
 
-    let body = DefaultResponse::new("ok", "create specification successfully".to_string())
+    let body = DefaultResponse::created("create specification successfully")
         .with_data(json!(specification));
 
     Ok(body.into_json())

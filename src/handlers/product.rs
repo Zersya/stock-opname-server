@@ -25,7 +25,7 @@ pub async fn get_all(
         }
     };
 
-    let body = DefaultResponse::new("ok", "get all product successfully".to_string())
+    let body = DefaultResponse::ok( "get all product successfully")
         .with_data(json!(products));
 
     Ok(body.into_json())
@@ -73,9 +73,8 @@ pub async fn set_product_specification(
         .await
         .unwrap();
 
-        let body = DefaultResponse::new(
-            "ok",
-            "update product specification successfully".to_string(),
+        let body = DefaultResponse::ok(
+            "update product specification successfully",
         )
         .with_data(json!(result));
 
@@ -87,9 +86,8 @@ pub async fn set_product_specification(
             .await
             .unwrap();
 
-    let body = DefaultResponse::new(
-        "ok",
-        "create product specification successfully".to_string(),
+    let body = DefaultResponse::created(
+        "create product specification successfully"
     )
     .with_data(json!(result));
 

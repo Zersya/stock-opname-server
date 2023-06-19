@@ -49,7 +49,7 @@ pub async fn register(
     let user = User::create(&db, name, email, hash).await.unwrap();
 
     let body =
-        DefaultResponse::new("ok", "register successfully".to_string()).with_data(json!(user));
+        DefaultResponse::created("register successfully").with_data(json!(user));
 
     Ok(body.into_json())
 }
