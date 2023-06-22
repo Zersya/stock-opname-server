@@ -73,10 +73,10 @@ impl DefaultResponse {
     }
 
 
-    pub fn error(message: &str, debug: String) -> Self {
+    pub fn error(message: &str, debug: Option<String>) -> Self {
         Self::new(
             "error",
-            Message { value: message.to_string(), debug: Some(debug) },
+            Message { value: message.to_string(), debug },
         )
     }
 

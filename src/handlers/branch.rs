@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::errors::{Errors, FieldValidator};
+use crate::errors::{FieldValidator};
 use crate::models::branch::Branch;
 use crate::models::product::Product;
 use crate::models::requests::branch::RequestFormBranch;
@@ -8,7 +8,9 @@ use crate::models::responses::DefaultResponse;
 
 use axum::extract::Path;
 use axum::Extension;
+use axum::response::{IntoResponse, Response};
 use axum::{extract::State, response::Json};
+use reqwest::StatusCode;
 use serde_json::{json, Value};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -17,11 +19,12 @@ pub async fn create(
     State(db): State<PgPool>,
     Extension(user_id): Extension<Uuid>,
     Json(payload): Json<RequestFormBranch>,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_reference_id(&db, payload.reference_id).await;
 
     if branch.is_ok() {
-        return Err(Errors::new(&[("reference_id", "already exists")]));
+        let body = DefaultResponse::error("Reference already exists", Some("reference_id is duplicate".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let maresto_url = std::env::var("MARESTO_URL").unwrap();
@@ -33,20 +36,21 @@ pub async fn create(
     .await;
 
     if response.as_ref().unwrap().status() != 200 {
-        return Err(Errors::new(&[("reference_id", "not found at maresto")]));
+        let body = DefaultResponse::error("Reference not found at Maresto", Some("reference_id not exists at Maresto".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let mut extractor = FieldValidator::validate(&payload);
 
     let name = extractor.extract("name", Some(payload.name));
-    extractor.check()?;
+    extractor.check();
 
     let branch = Branch::create(&db, user_id, name, payload.reference_id)
         .await
         .unwrap();
 
-    let body = DefaultResponse::created("create branch successfully")
-        .with_data(json!(branch));
+    let body = DefaultResponse::created("Create branch successfully")
+        .with_data(json!(branch)).into_json();
 
     tokio::spawn(async move {
         let json = response.unwrap().json::<Value>().await.unwrap();
@@ -69,80 +73,83 @@ pub async fn create(
         }
     });
 
-    Ok(body.into_json())
+    (StatusCode::CREATED, body).into_response()
 }
 
-pub async fn get_all(State(db): State<PgPool>) -> Result<Json<Value>, Errors> {
+pub async fn get_all(State(db): State<PgPool>) -> Response {
     let branches = Branch::get_all(&db).await.unwrap();
 
-    let body = DefaultResponse::ok("get branches successfully")
-        .with_data(json!(branches));
+    let body = DefaultResponse::ok("Get branches successfully")
+        .with_data(json!(branches)).into_json();
 
-    Ok(body.into_json())
+    (StatusCode::OK, body).into_response()
 }
 
 pub async fn update(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
     Json(payload): Json<RequestFormBranch>,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_id(&db, branch_id).await;
 
     if branch.is_err() {
-        return Err(Errors::new(&[("branch_id", "not found")]));
+        let body = DefaultResponse::error("Branch not found", Some("branch_id is not exist".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let mut extractor = FieldValidator::validate(&payload);
 
     let name = extractor.extract("name", Some(payload.name));
-    extractor.check()?;
+    extractor.check();
 
     let branch = Branch::update(&db, branch_id, name, payload.reference_id)
         .await
         .unwrap();
 
-    let body = DefaultResponse::ok("update branch successfully")
-        .with_data(json!(branch));
+    let body = DefaultResponse::ok("Update branch successfully")
+        .with_data(json!(branch)).into_json();
 
-    Ok(body.into_json())
+    (StatusCode::OK, body).into_response()
 }
 
 pub async fn get_by_id(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_id(&db, branch_id).await;
 
     if branch.is_err() {
-        return Err(Errors::new(&[("branch_id", "not found")]));
+        let body = DefaultResponse::error("Branch not found", Some("branch_id is not exist".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let body = DefaultResponse::ok("get branch successfully")
-        .with_data(json!(branch.unwrap()));
+        .with_data(json!(branch.unwrap())).into_json();
 
-    Ok(body.into_json())
+    (StatusCode::OK, body).into_response()
 }
 
 pub async fn get_by_user_id(
     State(db): State<PgPool>,
     Extension(user_id): Extension<Uuid>,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_user_id(&db, user_id).await;
 
     let body = DefaultResponse::ok("get branch successfully")
-        .with_data(json!(branch.unwrap()));
+        .with_data(json!(branch.unwrap())).into_json();
 
-    Ok(body.into_json())
+    (StatusCode::OK, body).into_response()
 }
 
 pub async fn sync(
     State(db): State<PgPool>,
     Path(branch_id): Path<Uuid>,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_id(&db, branch_id).await;
 
     if branch.is_err() {
-        return Err(Errors::new(&[("branch_id", "not found")]));
+        let body = DefaultResponse::error("Branch not found", Some("branch_id is not exist".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let maresto_url = std::env::var("MARESTO_URL").unwrap();
@@ -155,7 +162,8 @@ pub async fn sync(
     .await;
 
     if response.as_ref().unwrap().status() != 200 {
-        return Err(Errors::new(&[("reference_id", "not found at maresto")]));
+        let body = DefaultResponse::error("reference not found at maresto", Some("reference_id not exists at Maresto".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let json = response.unwrap().json::<Value>().await.unwrap();
@@ -171,7 +179,7 @@ pub async fn sync(
     .unwrap();
 
     let body = DefaultResponse::ok("update branch successfully")
-        .with_data(json!(branch));
+        .with_data(json!(branch)).into_json();
 
     tokio::spawn(async move {
         let map_branch = json["data"].as_object().unwrap();
@@ -203,5 +211,5 @@ pub async fn sync(
         }
     });
 
-    Ok(body.into_json())
+    (StatusCode::OK, body).into_response()
 }
