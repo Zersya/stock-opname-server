@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DefaultResponse {
     pub status: String,
-    pub message: String,
+    pub message: Message,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub access_token: Option<String>,
@@ -29,7 +29,7 @@ pub struct Message {
 
 
 impl DefaultResponse {
-    pub fn new(status: &str, message: String) -> Self {
+    pub fn new(status: &str, message: Message) -> Self {
         let status = status.to_string();
         Self {
             status,
@@ -39,6 +39,20 @@ impl DefaultResponse {
             errors: None,
             meta: None
         }
+    }
+
+    pub fn created(message: &str) -> Self {
+        Self::new(
+            "created",
+            Message { value: message.to_string(), debug: None },
+        )
+    }
+
+    pub fn ok(message: &str) -> Self {
+        Self::new(
+            "ok",
+            Message { value: message.to_string(), debug: None },
+        )
     }
 
     pub fn with_data(mut self, data: serde_json::Value) -> Self {
@@ -54,15 +68,15 @@ impl DefaultResponse {
     pub fn unauthorized(message: &str, debug: Option<String>) -> Self {
         Self::new(
             "unauthorized",
-            message.to_string(),
+            Message { value: message.to_string(), debug },
         )
     }
 
 
-    pub fn error(message: &str, debug: String) -> Self {
+    pub fn error(message: &str, debug: Option<String>) -> Self {
         Self::new(
             "error",
-            message.to_string(),
+            Message { value: message.to_string(), debug },
         )
     }
 

@@ -47,7 +47,7 @@ pub async fn login(State(db): State<PgPool>, Json(payload): Json<RequestLogin>) 
     let user = match User::login(&db, email, hash).await {
         Ok(user) => user,
         Err(err) => {
-            let body = DefaultResponse::error("login failed", err.to_string()).into_json();
+            let body = DefaultResponse::error("Login failed", Some(err.to_string())).into_json();
 
             return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
         }
@@ -58,7 +58,7 @@ pub async fn login(State(db): State<PgPool>, Json(payload): Json<RequestLogin>) 
         Err(err) => return (StatusCode::UNPROCESSABLE_ENTITY, err.into_response()).into_response(),
     };
 
-    let body = DefaultResponse::new("ok", "login successfully".to_string())
+    let body = DefaultResponse::ok("Login successfully")
         .with_access_token(token.access_token)
         .with_data(json!(user)).into_json();
 

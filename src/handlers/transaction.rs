@@ -10,10 +10,12 @@ use crate::models::specification_history::SpecificationHistory;
 use crate::models::transaction::{Transaction, TransactionItem};
 use crate::models::user::User;
 
+use axum::response::{IntoResponse, Response};
 use axum::{extract::Path, extract::State, response::Json};
+use reqwest::StatusCode;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
 use rust_decimal::Decimal;
-use serde_json::{json, Value};
+use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -21,18 +23,22 @@ pub async fn create(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
     Json(payload): Json<RequestCreateTransaction>,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_id(&db, branch_id).await;
 
     if branch.is_err() {
-        return Err(Errors::new(&[("branch_id", "branch not found")]));
+        let body =
+            DefaultResponse::error("Branch not found", Some("Branch ID not found".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     if payload.created_by.is_some() {
         let user = User::get_by_id(&db, payload.created_by.unwrap()).await;
 
         if user.is_err() {
-            return Err(Errors::new(&[("created_by", "user not found")]));
+            let body =
+                DefaultResponse::error("User not found", Some("Created by not found".to_string())).into_json();
+            return (StatusCode::BAD_REQUEST, body).into_response();
         }
     }
 
@@ -49,33 +55,42 @@ pub async fn create(
     .await
     {
         Ok(transaction) => transaction,
-        Err(err) => return Err(err),
+        Err(err) => {
+            let body = DefaultResponse::error("Something went wrong", Some("Something went wrong".to_string()))
+                .into_json();
+            return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
+        }
     };
 
     let commit = db_transaction.commit().await;
 
     if commit.is_err() {
-        return Err(Errors::new(&[(
-            "commit_db_transaction",
-            "failed to commit db_transaction",
-        )]));
+        let body = DefaultResponse::error(
+            "Something went wrong",
+            Some("Failed to commit db_transaction".to_string()),
+        )
+        .into_json();
+        return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
     }
 
-    let body = DefaultResponse::new("ok", "create transaction successfully".to_string())
-        .with_data(json!(transaction_id));
+    let body = DefaultResponse::created("create transaction successfully")
+        .with_data(json!(transaction_id))
+        .into_json();
 
-    Ok(body.into_json())
+    (StatusCode::CREATED, body).into_response()
 }
 
 pub async fn bulk_create(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
     Json(payload): Json<Vec<RequestCreateTransaction>>,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_id(&db, branch_id).await;
 
     if branch.is_err() {
-        return Err(Errors::new(&[("branch_id", "branch not found")]));
+        let body =
+            DefaultResponse::error("Branch not found", Some("Branch ID not found".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let mut db_transaction = db.begin().await.unwrap();
@@ -87,7 +102,9 @@ pub async fn bulk_create(
             let user = User::get_by_id(&db, transaction.created_by.unwrap()).await;
 
             if user.is_err() {
-                return Err(Errors::new(&[("created_by", "user not found")]));
+                let body = DefaultResponse::error("User not found", Some("Created by not found".to_string()))
+                    .into_json();
+                return (StatusCode::BAD_REQUEST, body).into_response();
             }
         }
 
@@ -110,7 +127,10 @@ pub async fn bulk_create(
                     .await
                     .expect("Failed to rollback transaction");
 
-                return Err(err);
+                let body =
+                    DefaultResponse::error("Something went wrong", Some("Something went wrong".to_string()))
+                        .into_json();
+                return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
             }
         };
 
@@ -119,15 +139,17 @@ pub async fn bulk_create(
 
     match db_transaction.commit().await {
         Ok(_) => {
-            let body = DefaultResponse::new("ok", "create transaction successfully".to_string())
-                .with_data(json!(transaction_ids));
+            let body = DefaultResponse::created("create transaction successfully")
+                .with_data(json!(transaction_ids))
+                .into_json();
 
-            Ok(body.into_json())
+            (StatusCode::CREATED, body).into_response()
         }
-        Err(_) => Err(Errors::new(&[(
-            "commit_db_transaction",
-            "failed to commit db_transaction",
-        )])),
+        Err(_) => {
+            let body = DefaultResponse::error("Something went wrong", Some("Something went wrong".to_string()))
+                .into_json();
+            return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
+        }
     }
 }
 
@@ -200,7 +222,10 @@ pub async fn process_create(
                 .expect("failed to convert product_spec_price to decimal");
 
             let decimal_result = decimal_price * decimal_product_spec_price;
-            let price = decimal_result.round_dp(2).to_f64().expect("failed to convert decimal to f64");
+            let price = decimal_result
+                .round_dp(2)
+                .to_f64()
+                .expect("failed to convert decimal to f64");
 
             SpecificationHistory::create(
                 db_transaction,

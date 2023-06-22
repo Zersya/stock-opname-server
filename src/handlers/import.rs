@@ -1,5 +1,6 @@
 use std::io::Write;
 
+use axum::response::{IntoResponse, Response};
 use calamine::{open_workbook, Error, RangeDeserializerBuilder, Reader, Xlsx};
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
@@ -12,8 +13,8 @@ use crate::models::product_specification::ProductSpecification;
 use crate::models::specification::Specification;
 use crate::{errors::Errors, models::responses::DefaultResponse};
 
-use axum::{extract::Multipart, extract::Path, extract::State, response::Json};
-use serde_json::Value;
+use axum::{extract::Multipart, extract::Path, extract::State};
+use reqwest::StatusCode;
 
 use sqlx::PgPool;
 
@@ -171,11 +172,12 @@ pub async fn product_specifications(
     State(db): State<PgPool>,
     Path((branch_id,)): Path<(Uuid,)>,
     mut multipart: Multipart,
-) -> Result<Json<Value>, Errors> {
+) -> Response {
     let branch = Branch::get_by_id(&db, branch_id).await;
 
     if branch.is_err() {
-        return Err(Errors::new(&[("branch_id", "branch not found")]));
+        let body = DefaultResponse::error("Branch not found", Some("branch_id is not exist".to_string())).into_json();
+        return (StatusCode::BAD_REQUEST, body).into_response();
     }
 
     let field = multipart.next_field().await.unwrap().unwrap();
@@ -187,7 +189,8 @@ pub async fn product_specifications(
     let data_length = data.len();
 
     if data_length > 2097152 {
-        return Err(Errors::new(&[("file", "file size must be less than 2mb")]));
+        let body = DefaultResponse::error("File size must be less than 2mb", None).into_json();
+        return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
     }
 
     let file_name = Uuid::new_v4().to_string();
@@ -205,12 +208,14 @@ pub async fn product_specifications(
             Ok(range) => range,
             Err(e) => {
                 Logger::new(e.to_string()).log();
-                return Err(Errors::new(&[("file", "file is not valid")]));
+                let body = DefaultResponse::error("File is not valid", None).into_json();
+                return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
             }
         },
         Err(e) => {
             Logger::new(e.to_string()).log();
-            return Err(Errors::new(&[("worksheet", "cannot find worksheet")]));
+            let body = DefaultResponse::error("Worksheet cannot be found", None).into_json();
+            return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
         }
     };
 
@@ -229,10 +234,9 @@ pub async fn product_specifications(
                     .rollback()
                     .await
                     .expect("Failed to rollback transaction");
-                return Err(Errors::new(&[(
-                    "specification",
-                    "failed to import specification",
-                )]));
+                let body =
+                    DefaultResponse::error("Failed to import specification", None).into_json();
+                return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
             }
         }
     }
@@ -241,10 +245,8 @@ pub async fn product_specifications(
         Ok(_) => (),
         Err(e) => {
             Logger::new(e.to_string()).log();
-            return Err(Errors::new(&[(
-                "specification",
-                "failed to commit transaction",
-            )]));
+            let body = DefaultResponse::error("Failed to commit transaction", None).into_json();
+            return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
         }
     };
 
@@ -258,12 +260,14 @@ pub async fn product_specifications(
             Ok(range) => range,
             Err(e) => {
                 Logger::new(e.to_string()).log();
-                return Err(Errors::new(&[("file", "file is not valid")]));
+                let body = DefaultResponse::error("File is not valid", None).into_json();
+                return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
             }
         },
         Err(e) => {
             Logger::new(e.to_string()).log();
-            return Err(Errors::new(&[("worksheet", "cannot find worksheet")]));
+            let body = DefaultResponse::error("Worksheet cannot be found", None).into_json();
+            return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
         }
     };
 
@@ -298,10 +302,9 @@ pub async fn product_specifications(
                     .rollback()
                     .await
                     .expect("Failed to rollback transaction");
-                return Err(Errors::new(&[(
-                    "specification",
-                    "failed to import product specification",
-                )]));
+                let body =
+                    DefaultResponse::error("Failed to import specification", None).into_json();
+                return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
             }
         }
     }
@@ -310,13 +313,11 @@ pub async fn product_specifications(
         Ok(_) => (),
         Err(e) => {
             Logger::new(e.to_string()).log();
-            return Err(Errors::new(&[(
-                "specification",
-                "failed to commit transaction",
-            )]));
+            let body = DefaultResponse::error("Failed to commit transaction", None).into_json();
+            return (StatusCode::UNPROCESSABLE_ENTITY, body).into_response();
         }
     };
 
-    let body = DefaultResponse::new("ok", "success to import product specifications".to_string());
-    Ok(body.into_json())
+    let body = DefaultResponse::ok("Success to import product specifications").into_json();
+    (StatusCode::OK, body).into_response()
 }
